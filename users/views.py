@@ -4,8 +4,9 @@ from django.contrib.auth.views import LoginView
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse, reverse_lazy
+from django.views.generic import CreateView
 
-from users.forms import LoginUserForm
+from users.forms import LoginUserForm, RegisterUserForm
 
 
 # Create your views here.
@@ -16,21 +17,12 @@ class LoginUser(LoginView):
     extra_context = {'title': 'Авторизация'}
 
 
-# def login_user(request):
-#     if request.method == 'POST':
-#         form = LoginUserForm(request.POST)
-#         if form.is_valid():
-#             cleaned_data = form.cleaned_data
-#             user = authenticate(request, username=cleaned_data['username'],
-#                                 password=cleaned_data['password'])
-#             if user and user.is_active:
-#                 login(request, user)
-#                 return HttpResponseRedirect(reverse('home'))
-#
-#     form = LoginUserForm()
-#     return render(request, template_name='users/login.html', context={'form': form})
+class RegisterUser(CreateView):
+    form_class = RegisterUserForm
+    template_name = 'users/register.html'
+    extra_context = {'title': 'Регистрация'}
+    success_url = reverse_lazy('users:register_done')
 
 
-# def logout_user(request):
-#     logout(request)
-#     return HttpResponseRedirect(reverse('users:login'))
+def register_user_done(request):
+    return render(request, 'users/register_done.html')

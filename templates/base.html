@@ -24,7 +24,7 @@
 		<li class="last">{{ user.username }} | <a href="#" onclick="document.getElementById('logoutForm').submit(); return false;">Выйти</a></li>
 	</form>
 {% else %}
-	<li class="last"><a href="{% url 'users:login' %}">Войти</a> | <a href="#">Регистрация</a></li>
+	<li class="last"><a href="{% url 'users:login' %}">Войти</a> | <a href="{% url 'users:register' %}">Регистрация</a></li>
 {% endif %}
 			</ul>
 			<div class="clear"></div>
