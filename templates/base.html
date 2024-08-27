@@ -21,7 +21,7 @@
 {% if user.is_authenticated %}
 	<form id="logoutForm" method="post" action="{% url 'users:logout' %}">
 		{% csrf_token %}
-		<li class="last">{{ user.username }} | <a href="#" onclick="document.getElementById('logoutForm').submit(); return false;">Выйти</a></li>
+		<li class="last"><a href="{% url 'users:profile' %}">{{ user.username }}</a> | <a href="#" onclick="document.getElementById('logoutForm').submit(); return false;">Выйти</a></li>
 	</form>
 {% else %}
 	<li class="last"><a href="{% url 'users:login' %}">Войти</a> | <a href="{% url 'users:register' %}">Регистрация</a></li>
