@@ -76,12 +76,12 @@ ul.list-articles li {
 .clear {clear: both;}
 
 .header {
-	background: #3F4137;
+	background: #191970;
 	height: 60px;
 }
 
 .logo {
-	background: url('../images/logo.png') no-repeat 10px 5px;
+	background: url('../images/unn_logo.png') no-repeat 10px 5px;
 	width: 70px;
 	height: 60px;
 }
@@ -91,7 +91,7 @@ ul.mainmenu {
 	margin: 0;
 	padding: 0;
 	height: 60px;
-	color: #fdc073;
+	color: #87CEFA;
 	font-size: 20px;
 	overflow: hidden;
 }
@@ -103,7 +103,7 @@ ul.mainmenu li.logo {margin: 0;}
 ul.mainmenu li.last {float: right;}
 
 ul.mainmenu li a {
-	color: #fdc073;
+	color: #FFFFFF;
 	text-decoration: none;
 }
 ul.mainmenu li a:hover {

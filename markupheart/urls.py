@@ -7,6 +7,6 @@ from markupheart import converters
 urlpatterns = [
     path('', views.MarkupheartHome.as_view(), name='home'),
     path('about/', views.MarkupheartAbout.as_view(), name='about'),
-    path('markup/', views.MarkupheartMarkup.as_view(), name='markup'),
+    path('markup/', views.markup, name='markup'),
     path('login/', views.MarkupheartLogin.as_view(), name='login'),
 ]
