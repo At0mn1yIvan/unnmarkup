@@ -8,10 +8,12 @@
     <div class="form-error">{{ form.non_field_errors }}</div>
     {% for f in form %}
     <p><label class="form-label" for="{{ f.title.id_for_label }}">{{ f.label }}</label>{{ f }}</p>
-        <div class="form-error">{{ f.errors }}</div>
+    <div class="form-error">{{ f.errors }}</div>
     {% endfor %}
 
-    <p><button type="submit">Сохранить</button></p>
+    <p>
+        <button type="submit">Сохранить</button>
+    </p>
 </form>
 
 <hr>

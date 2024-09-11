@@ -2,6 +2,15 @@
 
 {% block content %}
 <h1>Страница для разметки кардиограммы</h1>
-
-<div>{{ plot_div|safe }}</div>
+<div class="chart-grid">
+    {% for figure in figures %}
+    <div class="chart-container">
+        <div class="chart">{{ figure|safe }}</div>
+    </div>
+    {% if forloop.counter|divisibleby:"2" %}
+    <input type="range" min="0" max="100" value="50" class="slider" oninput="syncScroll(this)">
+    <div class="separator"></div>
+    {% endif %}
+    {% endfor %}
+</div>
 {% endblock %}

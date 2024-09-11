@@ -1,3 +1,4 @@
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse, HttpResponseNotFound, Http404
 from django.shortcuts import render
@@ -7,35 +8,29 @@ import plotly.subplots as sp
 import numpy as np
 from markupheart.utils import DataMixin
 
+
 # Create your views here.
 
-
+@login_required
 def markup(request):
     data = np.load('media/vanya.npy')
-    # names = ['I', 'II', 'III', 'AVR', 'AVL', 'AVF', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6']
-    names = ['I', 'V1', 'II', 'V2', 'III', 'V3', 'AVR', 'V4', 'AVL', 'V5', 'AVF', 'V6']
+    names = ['I', 'II', 'III', 'AVR', 'AVL', 'AVF', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6']
+    figures = []
+    for i in range(6):
+        for j in [0, 6]:
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(y=data[i + j], mode='lines', line=dict(color='black'), name=names[i + j]))
+            fig.update_layout(
+                title=names[i + j],
+                height=1000,
+                width=3000,
+                # xaxis=dict(showgrid=False),
+                # yaxis=dict(showgrid=False),
+                margin=dict(l=10, r=0, t=40, b=40)
+            )
+            figures.append(fig.to_html(full_html=False))
 
-    fig = sp.make_subplots(rows=6, cols=2, subplot_titles=names)
-
-    for i in range(len(data)):
-        row = (i % 6) + 1
-        col = (i // 6) + 1
-        fig.add_trace(go.Scatter(y=data[i], mode='lines'), row=row, col=col)
-
-    fig.update_layout(height=1000, width=800, title_text='Электрокардиограмма')
-
-    plot_div = fig.to_html(full_html=False)
-
-    return render(request, 'markupheart/markup.html', context={'plot_div': plot_div})
-
-    # x_data = [0, 1, 2, 3]
-    # y_data = [x**2 for x in x_data]
-    # plot_div = plot([Scatter(x=x_data, y=y_data,
-    #                          mode='lines', name='test',
-    #                          opacity=0.8)],
-    #                 output_type='div',
-    #                 include_plotlyjs=False)
-    # return render(request, template_name='markupheart/markup.html', context={'plot_div': plot_div})
+    return render(request, 'markupheart/markup.html', context={'figures': figures})
 
 
 class MarkupheartHome(DataMixin, TemplateView):
@@ -47,7 +42,7 @@ class MarkupheartHome(DataMixin, TemplateView):
         return self.get_mixin_context(context, title)'''
 
 
-class MarkupheartAbout(LoginRequiredMixin,DataMixin, TemplateView):
+class MarkupheartAbout(LoginRequiredMixin, DataMixin, TemplateView):
     template_name = 'markupheart/about.html'
     title_page = 'О сайте'
 

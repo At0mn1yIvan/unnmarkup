@@ -407,3 +407,70 @@ ul.lang-list li a:hover {color: #fdc073;}
     min-width: 200px;
     font-size: 16px;
 }
+/*Для графиков: */
+ .chart-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0; /* убираем пробелы между колонками */
+}
+
+.chart-container {
+    position: relative;
+    overflow: hidden;
+    border-right: 2px solid gray; /* Визуальный разделитель между графиками */
+    padding-bottom: 10px;
+}
+
+.chart-container.no-right-border {
+    border-right: none; /* Убираем линию после последней колонки */
+}
+
+.chart {
+    overflow-x: auto; /* Прокрутка по оси X */
+    white-space: nowrap;
+    scrollbar-width: none;
+}
+.chart::-webkit-scrollbar {
+    display: none; /* Для Chrome, Safari и Opera */
+}
+
+.slider {
+    width: 200%;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    background: lightgray;
+    appearance: none; /* Убирает стандартный стиль слайдера */
+}
+
+.slider::-webkit-slider-runnable-track {
+    width: 200%;
+    background: lightgray; /* Цвет фона полосы прокрутки */
+}
+
+.slider::-webkit-slider-thumb {
+    background: black; /* Цвет ползунка слайдера */
+    border-radius: 5px;
+    height: 20px;
+    width: 20px;
+    cursor: pointer;
+    appearance: none; /* Убирает стандартный стиль ползунка */
+}
+
+.slider::-moz-range-track {
+    width: 200%;
+    background: gray; /* Цвет фона полосы прокрутки */
+}
+
+.slider::-moz-range-thumb {
+    background: black; /* Цвет ползунка слайдера для Firefox */
+    border-radius: 5px;
+    height: 20px;
+    width: 20px;
+    cursor: pointer;
+}
+
+.separator {
+    grid-column: span 2;
+    height: 2px;
+    background-color: gray;
+}
