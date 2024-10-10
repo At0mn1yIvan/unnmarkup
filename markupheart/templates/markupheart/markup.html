@@ -1,16 +1,32 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Страница для разметки кардиограммы</h1>
-<div class="chart-grid">
-    {% for figure in figures %}
-    <div class="chart-container">
-        <div class="chart">{{ figure|safe }}</div>
-    </div>
-    {% if forloop.counter|divisibleby:"2" %}
-    <input type="range" min="0" max="100" value="50" class="slider" oninput="syncScroll(this)">
-    <div class="separator"></div>
-    {% endif %}
+<!--<div class="chart-grid">-->
+<!--    {% for figure in figures %}-->
+<!--    <div class="chart-container">-->
+<!--        <div class="chart">{{ figure|safe }}</div>-->
+<!--    </div>-->
+<!--    {% if forloop.counter|divisibleby:"2" %}-->
+<!--    <input type="range" min="0" max="100" value="50" class="slider" oninput="syncScroll(this)">-->
+<!--    <div class="separator"></div>-->
+<!--    {% endif %}-->
+<!--    {% endfor %}-->
+<!--</div>-->
+
+<input type="range" id="scroll" min="0" max="{{ data.0|length }}" value="0" step="1" style="width: 100%;">
+
+<div class="charts-grid">
+    {% for name in names %}
+        <div class="chart-container">
+            <h2>{{ name }}</h2>
+            <canvas id="chart_{{ name }}" width="500" height="150"></canvas>
+        </div>
     {% endfor %}
 </div>
+
+<!-- Передаем данные через глобальные переменные -->
+<script>
+    window.ecgData = {{ data | safe }};
+    window.ecgNames = {{ names | safe }};
+</script>
 {% endblock %}

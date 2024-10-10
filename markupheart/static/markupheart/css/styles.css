@@ -408,30 +408,32 @@ ul.lang-list li a:hover {color: #fdc073;}
     font-size: 16px;
 }
 /*Для графиков: */
+/*
  .chart-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 0; /* убираем пробелы между колонками */
+    gap: 0;
+    width: 100%;
 }
 
 .chart-container {
     position: relative;
     overflow: hidden;
-    border-right: 2px solid gray; /* Визуальный разделитель между графиками */
+    border-right: 2px solid gray;
     padding-bottom: 10px;
 }
 
 .chart-container.no-right-border {
-    border-right: none; /* Убираем линию после последней колонки */
+    border-right: none;
 }
 
 .chart {
-    overflow-x: auto; /* Прокрутка по оси X */
+    overflow-x: auto;
     white-space: nowrap;
     scrollbar-width: none;
 }
 .chart::-webkit-scrollbar {
-    display: none; /* Для Chrome, Safari и Opera */
+    display: none;
 }
 
 .slider {
@@ -439,30 +441,30 @@ ul.lang-list li a:hover {color: #fdc073;}
     margin-top: 10px;
     margin-bottom: 10px;
     background: lightgray;
-    appearance: none; /* Убирает стандартный стиль слайдера */
+    appearance: none;
 }
 
 .slider::-webkit-slider-runnable-track {
     width: 200%;
-    background: lightgray; /* Цвет фона полосы прокрутки */
+    background: lightgray;
 }
 
 .slider::-webkit-slider-thumb {
-    background: black; /* Цвет ползунка слайдера */
+    background: black;
     border-radius: 5px;
     height: 20px;
     width: 20px;
     cursor: pointer;
-    appearance: none; /* Убирает стандартный стиль ползунка */
+    appearance: none;
 }
 
 .slider::-moz-range-track {
     width: 200%;
-    background: gray; /* Цвет фона полосы прокрутки */
+    background: gray;
 }
 
 .slider::-moz-range-thumb {
-    background: black; /* Цвет ползунка слайдера для Firefox */
+    background: black;
     border-radius: 5px;
     height: 20px;
     width: 20px;
@@ -473,4 +475,25 @@ ul.lang-list li a:hover {color: #fdc073;}
     grid-column: span 2;
     height: 2px;
     background-color: gray;
+}
+*/
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.chart-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+h2 {
+    margin-bottom: 10px;
+}
+
+canvas {
+    border: 1px solid #ccc;
 }
