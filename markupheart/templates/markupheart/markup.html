@@ -13,16 +13,20 @@
 <!--    {% endfor %}-->
 <!--</div>-->
 
-<input type="range" id="scroll" min="0" max="{{ data.0|length }}" value="0" step="1" style="width: 100%;">
+<input type="range" id="scroll" min="0" value="0" step="1" style="width: 100%;">
 
 <div class="charts-grid">
     {% for name in names %}
-        <div class="chart-container">
-            <h2>{{ name }}</h2>
-            <canvas id="chart_{{ name }}" width="500" height="150"></canvas>
-        </div>
+    <div class="chart-container">
+        <h2>{{ name }}</h2>
+        <canvas id="chart_{{ name }}" width="500" height="150"></canvas>
+    </div>
     {% endfor %}
 </div>
+<!--<div class="charts-grid">-->
+<!--    <div id="column1" class="column"></div>-->
+<!--    <div id="column2" class="column"></div>-->
+<!--</div>-->
 
 <!-- Передаем данные через глобальные переменные -->
 <script>

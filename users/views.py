@@ -25,10 +25,6 @@ class RegisterUser(CreateView):
     success_url = reverse_lazy('users:register_done')
 
 
-def register_user_done(request):
-    return render(request, 'users/register_done.html')
-
-
 class ProfileUser(LoginRequiredMixin, UpdateView):
     model = get_user_model()
     form_class = ProfileUserForm
@@ -45,3 +41,7 @@ class PasswordChangeUser(PasswordChangeView):
     success_url = reverse_lazy("users:password_change_done")
     template_name = "users/password_change_form.html"
     extra_context = {'title': 'Смена пароля'}
+
+
+def register_user_done(request):
+    return render(request, 'users/register_done.html')

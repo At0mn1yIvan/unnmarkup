@@ -39,6 +39,9 @@ document.addEventListener("DOMContentLoaded", function() {
     const zoomFactor = 500;
     let offset = 0;
 
+    const maxOffset = data[0].length - zoomFactor;
+    document.getElementById("scroll").setAttribute("max", maxOffset);
+
     function drawECG(canvasId, ecgData, offset) {
         const canvas = document.getElementById(canvasId);
         const ctx = canvas.getContext('2d');
@@ -48,12 +51,15 @@ document.addEventListener("DOMContentLoaded", function() {
 
         const visibleData = ecgData.slice(offset, offset + zoomFactor)
 
-        const scaleX = canvas.width / ecgData.length;
-        const scaleY = canvas.height / 2;
+        const minValue = Math.min(...visibleData);
+        const maxValue = Math.max(...visibleData);
+
+        const scaleX = canvas.width / (visibleData.length - 1);
+        const scaleY = canvas.height / (maxValue - minValue);
 
         for (let i = 0; i < ecgData.length; i++) {
             const x = i * scaleX;
-            const y = scaleY - visibleData[i];
+            const y = canvas.height - (visibleData[i] - minValue) * scaleY;
             ctx.lineTo(x, y);
         }
 
@@ -61,9 +67,14 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function updateCharts(offset) {
-        names.forEach((name, index) => {
-            drawECG(`chart_${name}`, data[index], offset);
-        });
+//        names.forEach((name, index) => {
+//            drawECG(`chart_${name}`, data[index], offset);
+//        });
+        for (let i = 0; i < 6; i++) {
+            for (let j of [0, 6]) {
+                drawECG(`chart_${names[i+j]}`, data[i + j], offset);
+            }
+        }
     }
 
     document.getElementById("scroll").addEventListener("input", function() {
