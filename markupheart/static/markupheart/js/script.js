@@ -1,45 +1,11 @@
-//document.addEventListener("DOMContentLoaded", function() {
-//    const sliders = document.querySelectorAll('.slider');
-//
-//    sliders.forEach(slider => {
-//        slider.addEventListener('input', function() {
-//            syncAllSliders(slider.value);
-//        });
-//    });
-//
-//    function syncAllSliders(value) {
-//        sliders.forEach(slider => {
-//            slider.value = value;
-//            syncScroll(slider);
-//        });
-//    }
-//
-//    function syncScroll(slider) {
-//        const container = slider.previousElementSibling;
-//        const rowContainers = Array.from(container.parentElement.parentElement.children);
-//
-//        const sliderIndex = Array.from(slider.parentElement.children).indexOf(slider);
-//        const isFirstSliderInRow = (sliderIndex % 2 === 0);
-//
-//        const rowIndex = rowContainers.indexOf(container.parentElement);
-//        const chartsInRow = rowContainers
-//            .slice(rowIndex, rowIndex + 2)
-//            .flatMap(rowContainer => Array.from(rowContainer.querySelectorAll('.chart')));
-//
-//        const scrollAmount = (chartsInRow[0].scrollWidth - chartsInRow[0].clientWidth) * (slider.value / 100);
-//
-//        chartsInRow.forEach(chart => chart.scrollLeft = scrollAmount);
-//    }
-//});
-
 document.addEventListener("DOMContentLoaded", function() {
     const data = window.ecgData;
     const names = window.ecgNames;
 
     const zoomFactor = 500;
+    const maxOffset = data[0].length - zoomFactor;
     let offset = 0;
 
-    const maxOffset = data[0].length - zoomFactor;
     document.getElementById("scroll").setAttribute("max", maxOffset);
 
     function drawECG(canvasId, ecgData, offset) {
@@ -67,9 +33,6 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function updateCharts(offset) {
-//        names.forEach((name, index) => {
-//            drawECG(`chart_${name}`, data[index], offset);
-//        });
         for (let i = 0; i < 6; i++) {
             for (let j of [0, 6]) {
                 drawECG(`chart_${names[i+j]}`, data[i + j], offset);

@@ -1,36 +1,34 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!--<div class="chart-grid">-->
-<!--    {% for figure in figures %}-->
-<!--    <div class="chart-container">-->
-<!--        <div class="chart">{{ figure|safe }}</div>-->
-<!--    </div>-->
-<!--    {% if forloop.counter|divisibleby:"2" %}-->
-<!--    <input type="range" min="0" max="100" value="50" class="slider" oninput="syncScroll(this)">-->
-<!--    <div class="separator"></div>-->
-<!--    {% endif %}-->
-<!--    {% endfor %}-->
-<!--</div>-->
+{% load markupheart_filters %}
 
-<input type="range" id="scroll" min="0" value="0" step="1" style="width: 100%;">
+<input type="range" id="scroll" min="0" value="0" step="1">
 
-<div class="charts-grid">
-    {% for name in names %}
-    <div class="chart-container">
-        <h2>{{ name }}</h2>
-        <canvas id="chart_{{ name }}" width="500" height="150"></canvas>
-    </div>
+<table>
+    {% for i in 6|create_range %}
+    <tr>
+        <!-- Левая колонка -->
+        <td>
+            <h2>{{ names|return_item:i }}</h2>
+            <canvas id="chart_{{ names|return_item:i }}" width="500" height="150"></canvas>
+        </td>
+        <!-- Правая колонка -->
+        <td>
+            {% with j=i|add:"6" %}
+            <h2>{{ names|return_item:j }}</h2>
+            <canvas id="chart_{{ names|return_item:j }}" width="500" height="150"></canvas>
+            {% endwith %}
+        </td>
+    </tr>
     {% endfor %}
-</div>
-<!--<div class="charts-grid">-->
-<!--    <div id="column1" class="column"></div>-->
-<!--    <div id="column2" class="column"></div>-->
-<!--</div>-->
+</table>
 
 <!-- Передаем данные через глобальные переменные -->
 <script>
     window.ecgData = {{ data | safe }};
     window.ecgNames = {{ names | safe }};
 </script>
+
+
 {% endblock %}
