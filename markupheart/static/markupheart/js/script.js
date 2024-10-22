@@ -21,7 +21,6 @@
 //        for (let i = 0; i <= num_lines_x; i++) {
 //            ctx.beginPath();
 //            ctx.lineWidth = 1;
-//            // TODO: убрать if.
 //            // Ось X рисуем черным цветом
 //            if (i === x_axis_distance_grid_lines) {
 //                //ctx.strokeStyle = "#000000";
@@ -38,7 +37,6 @@
 //        for (let i = 0; i <= num_lines_y; i++) {
 //            ctx.beginPath();
 //            ctx.lineWidth = 1;
-//            // TODO: убрать if.
 //            // Ось Y рисуем черным цветом
 //            if (i === y_axis_distance_grid_lines) {
 //                //ctx.strokeStyle = "#000000";
@@ -60,7 +58,6 @@
 //        ctx.stroke();
 //
 //        // Отрисовка меток и подписей по оси X (учитываем смещение offset)
-//        // TODO: решить, нужны ли отметки на осях X и Y.
 //        const visibleDataStart = offset;
 //        const visibleDataEnd = offset + zoomFactor;
 //        const xAxisStep = (visibleDataEnd - visibleDataStart) / num_lines_y;
