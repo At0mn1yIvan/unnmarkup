@@ -420,13 +420,21 @@ table {
 
 td {
     width: 50%;
-    padding: 0;
-    margin: 0;
     vertical-align: top;
 }
 
-canvas {
-    width: 100%;
-    height: 100%;
-    border: 1px solid #ccc;
+/*Для графиков svg: */
+
+.chart-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px; /* Отступы между графиками */
+}
+
+.grid line {
+    stroke: #e0e0e0;
+}
+
+.grid text {
+    font-size: 10px;
 }

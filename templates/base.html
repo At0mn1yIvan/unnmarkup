@@ -5,6 +5,7 @@
     <title>{{title}}</title>
 
     <link type="text/css" href="{% static 'markupheart/css/styles.css' %}" rel="stylesheet"/>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="{% static 'markupheart/js/script.js' %}"></script>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <link rel="shortcut icon" href="{% static 'markupheart/images/unn_main.ico' %}" type="image/x-icon"/>
@@ -27,7 +28,7 @@
                     <form id="logoutForm" method="post" action="{% url 'users:logout' %}">
                         {% csrf_token %}
                         <li class="last"><a href="{% url 'users:profile' %}">{{user.username}}</a> | <a href="#"
-                                                                                                          onclick="document.getElementById('logoutForm').submit(); return false;">Выйти</a>
+                                                                                                        onclick="document.getElementById('logoutForm').submit(); return false;">Выйти</a>
                         </li>
                     </form>
                     {% else %}
