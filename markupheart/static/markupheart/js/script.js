@@ -148,132 +148,170 @@
 //    updateCharts(offset);
 //});
 
+const DELTA_Y = 0.1;
+const VIEWPORT_SIZE = 1000;
+const SCROLL_STEP = 100;
 
 function getTicks(last, values) {
-    var myArray = [0];
-    for(var i = 1; i <= values; i++) {
-        myArray.push(last * i / values)
-    }
-    return myArray;
+  return d3.range(0, last + last / values, last / values);
 }
 
 function findGlobalMinMax(data) {
-    const globalMin = d3.min(data, arr => d3.min(arr));
-    const globalMax = d3.max(data, arr => d3.max(arr));
+  const globalMin = d3.min(data, (arr) => d3.min(arr));
+  const globalMax = d3.max(data, (arr) => d3.max(arr));
 
-    return [ globalMin, globalMax ];
+  return [globalMin, globalMax];
 }
 
-document.addEventListener("DOMContentLoaded", function() {
-    const data = window.ecgData[0];
-    const margin = { top: 10, right: 30, bottom: 40, left: 30 };
+function buildChart(containerId, index) {
+  const data = window.ecgData[index];
+  const name = window.ecgNames[index];
+  const totalDataPoints = data.length;
 
-    const [globalMinY, globalMaxY] = findGlobalMinMax(window.ecgData);
+  const [globalMinY, globalMaxY] = findGlobalMinMax(window.ecgData);
 
-    const totalDataPoints = data.length;
-    const scrollFactor = 1000;
-    const scrollStep = 100;
-    let currentStartIndex = 0;
-    let isMouseOverChart = false;
+  let currentStartIndex = 0;
+  let isMouseOverChart = false;
 
-    // Графики строятся относительно общего минимума
-    const deltaY = 0.1;
-//    const minY = globalMinY - deltaY;
-//    const maxY = globalMaxY + deltaY;
+  // Графики строятся относительно общего минимума
+  const minY = globalMinY - DELTA_Y;
+  const maxY = globalMaxY + DELTA_Y;
 
-    // Графики строятся относительно собственных минимумов
-    const minY = d3.min(data) - deltaY;
-    const maxY = d3.max(data) + deltaY;
+  // Графики строятся относительно собственных минимумов
+  //    const minY = d3.min(data) - DELTA_Y;
+  //    const maxY = d3.max(data) + DELTA_Y;
 
-    const ticksAmountX = 25 * (scrollFactor / 1000);
-    const ticksAmountY = 10 * (maxY - minY);
-    const unscaledWidth = 1000;
-    const unscaledHeight = (scrollFactor === data.length) ? (unscaledWidth / 2) : (unscaledWidth * (ticksAmountY / ticksAmountX));
-    const width = unscaledWidth - margin.left - margin.right;
-    const height = unscaledHeight - margin.top - margin.bottom;
+  const ticksAmountX = 25 * (VIEWPORT_SIZE / 1000);
+  const ticksAmountY = 10 * (maxY - minY);
 
-    const x = d3.scaleLinear().range([0, width]);
-    const y = d3.scaleLinear().range([height, 0]);
+  // Общие данные о размере графика
+  const innerChartWidth = 1000;
+  const innerChartHeight =
+    VIEWPORT_SIZE === data.length
+      ? innerChartWidth / 2
+      : innerChartWidth * (ticksAmountY / ticksAmountX);
+  const margin = { top: 10, right: 30, bottom: 40, left: 30 };
+  const svgWidth = innerChartWidth - margin.left - margin.right;
+  const svgHeight = innerChartHeight - margin.top - margin.bottom;
 
-    const svg = d3.select("#chart-container")
-        .append("svg")
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom)
-            .on("mouseenter", () => isMouseOverChart = true)
-            .on("mouseleave", () => isMouseOverChart = false);
+  const x = d3.scaleLinear().range([0, svgWidth]);
+  const y = d3.scaleLinear().range([svgHeight, 0]);
 
-    // Создаем группу для сетки, которая обновляться не будет
-    const gridGroup = svg.append("g")
-        .attr("class", "grid-group")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+  const svg = d3
+    .select(`#${containerId}`)
+    .append("svg")
+    .attr("width", svgWidth + margin.left + margin.right)
+    .attr("height", svgHeight + margin.top + margin.bottom)
+    .on("mouseenter", () => (isMouseOverChart = true))
+    .on("mouseleave", () => (isMouseOverChart = false));
 
-    // Создаем группу для графика, которая будет обновляться
-    const chartGroup = svg.append("g")
-        .attr("class", "chart-group")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+  // Создаем группу для сетки, которая обновляться не будет
+  const gridGroup = svg
+    .append("g")
+    .attr("class", "grid-group")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    const line = d3.line()
-            .x((d, i) => x(currentStartIndex + i))
-            .y(d => y(d));
+  // Создаем группу для графика, которая будет обновляться
+  const chartGroup = svg
+    .append("g")
+    .attr("class", "chart-group")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    const drawGrid = () => {
+  const line = d3
+    .line()
+    .x((d, i) => x(currentStartIndex + i))
+    .y((d) => y(d));
+
+  const drawGrid = () => {
     // Ось X для сетки
-        gridGroup.append("g")
-            .attr("class", "grid")
-            .attr("transform", `translate(0,${height})`)
-            .call(d3.axisBottom(x)
-                .tickValues(getTicks(scrollFactor, ticksAmountX))
-                .tickSize(-height)
-                .tickFormat(""));
+    gridGroup
+      .selectAll("xGrid")
+      .data(getTicks(VIEWPORT_SIZE, ticksAmountX))
+      .join("line")
+      .attr("x1", (d) => x(d))
+      .attr("x2", (d) => x(d))
+      .attr("y1", 0)
+      .attr("y2", svgHeight)
+      .attr("stroke", "#e0e0e0")
+      .attr("stroke-width", 0.5);
 
-        // Ось Y для сетки
-        gridGroup.append("g")
-            .attr("class", "grid")
-            .call(d3.axisLeft(y)
-                .ticks(ticksAmountY)
-                .tickSize(-width)
-                .tickFormat(""));
-    };
+    // Ось Y для сетки
+    gridGroup
+      .selectAll("yGrid")
+      .data(y.ticks(ticksAmountY))
+      .join("line")
+      .attr("x1", 0)
+      .attr("x2", svgWidth)
+      .attr("y1", (d) => y(d))
+      .attr("y2", (d) => y(d))
+      .attr("stroke", "#e0e0e0")
+      .attr("stroke-width", 0.5);
 
-    const updateChart = () => {
-        const visibleData = data.slice(currentStartIndex, currentStartIndex + scrollFactor);
-        const tickValuesX = d3.range(currentStartIndex, currentStartIndex + scrollFactor + scrollStep, scrollStep);
+    // Текст с названием графика
+    gridGroup
+      .append("text")
+      .attr("x", margin.left + 50)
+      .attr("y", margin.top + 50)
+      .attr("text-anchor", "middle")
+      .attr("font-size", "32px")
+      .attr("font-family", "Yandex Sans Display Light")
+      .attr("fill", "black")
+      .text(name);
+  };
 
-        x.domain([currentStartIndex, currentStartIndex + scrollFactor]);
-        y.domain([minY, maxY]);
+  const updateChart = () => {
+    const visibleData = data.slice(
+      currentStartIndex,
+      currentStartIndex + VIEWPORT_SIZE
+    );
+    const tickValuesX = d3.range(
+      currentStartIndex,
+      currentStartIndex + VIEWPORT_SIZE + SCROLL_STEP,
+      SCROLL_STEP
+    );
 
-        chartGroup.selectAll("*").remove();
+    x.domain([currentStartIndex, currentStartIndex + VIEWPORT_SIZE]);
+    y.domain([minY, maxY]);
 
-        chartGroup.append("g")
-            .attr("transform", `translate(0,${height})`)
-            .call(d3.axisBottom(x)
-                .tickValues(tickValuesX));
+    chartGroup.selectAll("*").remove();
 
-        chartGroup.append("g")
-            .call(d3.axisLeft(y)
-                .ticks(ticksAmountY)
-                .tickFormat(d3.format(".1f")));
+    chartGroup
+      .append("g")
+      .attr("transform", `translate(0,${svgHeight})`)
+      .call(d3.axisBottom(x).tickValues(tickValuesX));
 
-        chartGroup.append("path")
-            .datum(visibleData)
-            .attr("fill", "none")
-            .attr("stroke", "steelblue")
-            .attr("stroke-width", 1.5)
-            .attr("d", line);
-    };
+    chartGroup
+      .append("g")
+      .call(d3.axisLeft(y).ticks(ticksAmountY).tickFormat(d3.format(".1f")));
 
+    chartGroup
+      .append("path")
+      .datum(visibleData)
+      .attr("fill", "none")
+      .attr("stroke", "gray")
+      .attr("stroke-width", 1.5)
+      .attr("d", line);
+  };
+
+  updateChart();
+  drawGrid();
+
+  d3.select("#chart-container").on("wheel", function (event) {
+    if (!isMouseOverChart) return;
+
+    event.preventDefault();
+    if (event.deltaY < 0) {
+      currentStartIndex = Math.max(0, currentStartIndex - SCROLL_STEP);
+    } else {
+      currentStartIndex = Math.min(
+        totalDataPoints - VIEWPORT_SIZE,
+        currentStartIndex + SCROLL_STEP
+      );
+    }
     updateChart();
-    drawGrid();
+  });
+}
 
-    d3.select("#chart-container").on("wheel", function(event) {
-        if (!isMouseOverChart) return;
-
-        event.preventDefault();
-        if (event.deltaY < 0) {
-            currentStartIndex = Math.max(0, currentStartIndex - scrollStep);
-        } else {
-            currentStartIndex = Math.min(totalDataPoints - scrollFactor, currentStartIndex + scrollStep);
-        }
-        updateChart();
-    });
+document.addEventListener("DOMContentLoaded", function () {
+  buildChart("chart-container", 7);
 });
