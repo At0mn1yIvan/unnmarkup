@@ -170,7 +170,9 @@ function buildChart(containerId, index) {
 
   const [globalMinY, globalMaxY] = findGlobalMinMax(window.ecgData);
 
+  // Начальный индекс для прокрутки
   let currentStartIndex = 0;
+  // Флаг для отключения/включения прокрутки
   let isMouseOverChart = false;
 
   // Графики строятся относительно общего минимума
@@ -181,11 +183,16 @@ function buildChart(containerId, index) {
   //    const minY = d3.min(data) - DELTA_Y;
   //    const maxY = d3.max(data) + DELTA_Y;
 
+  // Количество тиков по оси X и Y
   const ticksAmountX = 25 * (VIEWPORT_SIZE / 1000);
   const ticksAmountY = 10 * (maxY - minY);
 
+  // Получение ширины контейнера для корректной отрисовки
+  const container = d3.select(`#${containerId}`);
+  const containerWidth = container.node().getBoundingClientRect().width;
+
   // Общие данные о размере графика
-  const innerChartWidth = 1000;
+  const innerChartWidth = containerWidth;
   const innerChartHeight =
     VIEWPORT_SIZE === data.length
       ? innerChartWidth / 2
@@ -194,6 +201,7 @@ function buildChart(containerId, index) {
   const svgWidth = innerChartWidth - margin.left - margin.right;
   const svgHeight = innerChartHeight - margin.top - margin.bottom;
 
+  // Задание X и Y, а так же их диапазона
   const x = d3.scaleLinear().range([0, svgWidth]);
   const y = d3.scaleLinear().range([svgHeight, 0]);
 
@@ -296,7 +304,7 @@ function buildChart(containerId, index) {
   updateChart();
   drawGrid();
 
-  d3.select("#chart-container").on("wheel", function (event) {
+  d3.select(`#${containerId}`).on("wheel", function (event) {
     if (!isMouseOverChart) return;
 
     event.preventDefault();
@@ -312,6 +320,14 @@ function buildChart(containerId, index) {
   });
 }
 
+function buildCharts() {
+    for (let i = 0; i < 6; i++) {
+        for (let j of [0, 6]) {
+            buildChart(`chart-container_${window.ecgNames[i+j]}`, i+j);
+        }
+    }
+}
+
 document.addEventListener("DOMContentLoaded", function () {
-  buildChart("chart-container", 7);
+  buildCharts();
 });

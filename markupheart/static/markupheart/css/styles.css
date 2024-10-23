@@ -421,14 +421,13 @@ table {
 td {
     width: 50%;
     vertical-align: top;
+    padding: 10px; /* Добавляем отступы */
+    overflow: hidden;
 }
 
-/*Для графиков svg: */
-
 .chart-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px; /* Отступы между графиками */
+    width: 100%; /* Занимает 100% внутри своей ячейки */
+    height: auto;
 }
 
 .grid line {

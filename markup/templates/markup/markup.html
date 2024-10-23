@@ -5,28 +5,35 @@
 
 <!--<input type="range" id="scroll" min="0" value="0" step="1">-->
 
-<!--<table>-->
-<!--    {% for i in 6|create_range %}-->
-<!--    <tr>-->
-<!--        &lt;!&ndash; Левая колонка &ndash;&gt;-->
-<!--        <td>-->
-<!--            <h2>{{ names|return_item:i }}</h2>-->
-<!--            &lt;!&ndash;            <canvas id="chart_{{ names|return_item:i }}" width="500" height="500"></canvas>&ndash;&gt;-->
-<!--            <svg id="chart_{{ names|return_item:i }}"></svg>-->
-<!--        </td>-->
-<!--        &lt;!&ndash; Правая колонка &ndash;&gt;-->
-<!--        <td>-->
-<!--            {% with j=i|add:"6" %}-->
-<!--            <h2>{{ names|return_item:j }}</h2>-->
-<!--            &lt;!&ndash;            <canvas id="chart_{{ names|return_item:j }}" width="500" height="500"></canvas>&ndash;&gt;-->
-<!--            <svg id="chart_{{ names|return_item:j }}"></svg>-->
-<!--            {% endwith %}-->
-<!--        </td>-->
-<!--    </tr>-->
-<!--    {% endfor %}-->
-<!--</table>-->
+<table>
+    {% for i in 6|create_range %}
+    <tr>
+        <!-- Левая колонка -->
+        <td>
+            <div class="chart-container" id="chart-container_{{ names|return_item:i }}"></div>
+        </td>
+        <!-- Правая колонка -->
+        <td>
+            {% with j=i|add:"6" %}
+            <div class="chart-container" id="chart-container_{{ names|return_item:j }}"></div>
+            {% endwith %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
 
-<div id="chart-container"></div>
+<!--{% for i in 6|create_range %}-->
+<!--&lt;!&ndash; Левая колонка &ndash;&gt;-->
+
+<!--<div id="chart-container_{{ names|return_item:i }}"></div>-->
+
+<!--&lt;!&ndash; Правая колонка &ndash;&gt;-->
+<!--{% with j=i|add:"6" %}-->
+
+<!--<div id="chart-container_{{ names|return_item:j }}"></div>-->
+<!--{% endwith %}-->
+<!--{% endfor %}-->
+
 
 <!-- Передаем данные через глобальные переменные -->
 <script>
