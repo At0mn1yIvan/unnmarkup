@@ -7,11 +7,9 @@ environ==1.0
 executing==2.0.1
 ipython==8.26.0
 jedi==0.19.1
-matplotlib-inline==0.1.7
 numpy==2.1.1
 packaging==24.1
 parso==0.8.4
-plotly==5.24.0
 prompt_toolkit==3.0.47
 pure_eval==0.2.3
 Pygments==2.18.0

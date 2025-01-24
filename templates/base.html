@@ -1,66 +1,86 @@
 {% load static %}
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>{{title}}</title>
 
-    <link type="text/css" href="{% static 'markupheart/css/styles.css' %}" rel="stylesheet"/>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="{% static 'markupheart/js/script.js' %}"></script>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <link rel="shortcut icon" href="{% static 'markupheart/images/unn_main.ico' %}" type="image/x-icon"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body>
-<table class="table-page" border=0 cellpadding="0" cellspacing="0">
-    <tr>
-        <td valign=top>
-            {% block mainmenu %}
-            <div class="header">
-                <ul id="mainmenu" class="mainmenu">
-                    <li class="logo"><a href="{% url 'home' %}">
-                        <div class="logo"></div>
-                    </a></li>
-                    {% for m in mainmenu %}
-                    <li><a href="{% url m.url_name %}">{{m.title}}</a></li>
-                    {% endfor %}
-                    {% if user.is_authenticated %}
-                    <form id="logoutForm" method="post" action="{% url 'users:logout' %}">
-                        {% csrf_token %}
-                        <li class="last"><a href="{% url 'users:profile' %}">{{user.username}}</a> | <a href="#"
-                                                                                                        onclick="document.getElementById('logoutForm').submit(); return false;">Выйти</a>
-                        </li>
-                    </form>
-                    {% else %}
-                    <li class="last"><a href="{% url 'users:login' %}">Войти</a> | <a href="{% url 'users:register' %}">Регистрация</a>
-                    </li>
-                    {% endif %}
-                </ul>
-                <div class="clear"></div>
-            </div>
-            {% endblock mainmenu %}
+    <link
+      type="text/css"
+      href="{% static 'markupheart/css/styles.css' %}"
+      rel="stylesheet"
+    />
+    {% block script %}
+    {% endblock %}
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link
+      rel="shortcut icon"
+      href="{% static 'markupheart/images/unn_main.ico' %}"
+      type="image/x-icon"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  </head>
+  <body>
+    <table class="table-page" border="0" cellpadding="0" cellspacing="0">
+      <tr>
+        <td valign="top">
+          {% block mainmenu %}
+          <div class="header">
+            <ul id="mainmenu" class="mainmenu">
+              <li class="logo">
+                <a href="{% url 'home' %}">
+                  <div class="logo"></div>
+                </a>
+              </li>
+              {% for m in mainmenu %}
+              <li><a href="{% url m.url_name %}">{{m.title}}</a></li>
+              {% endfor %} {% if user.is_authenticated %}
+              <form
+                id="logoutForm"
+                method="post"
+                action="{% url 'users:logout' %}"
+              >
+                {% csrf_token %}
+                <li class="last">
+                  <a href="{% url 'users:profile' %}">{{user.username}}</a> |
+                  <a
+                    href="#"
+                    onclick="document.getElementById('logoutForm').submit(); return false;"
+                    >Выйти</a
+                  >
+                </li>
+              </form>
+              {% else %}
+              <li class="last">
+                <a href="{% url 'users:login' %}">Войти</a> |
+                <a href="{% url 'users:register' %}">Регистрация</a>
+              </li>
+              {% endif %}
+            </ul>
+            <div class="clear"></div>
+          </div>
+          {% endblock mainmenu %}
 
+          <table
+            class="table-content"
+            border="0"
+            cellpadding="0"
+            cellspacing="0"
+          >
+            <tr>
+              <td valign="top" class="content">
+                <!-- Хлебные крошки -->
+                {% block breadcrumbs %} {% endblock %}
 
-            <table class="table-content" border=0 cellpadding="0" cellspacing="0">
-                <tr>
-
-                    <td valign="top" class="content">
-                        <!-- Хлебные крошки -->
-                        {% block breadcrumbs %}
-                        {% endblock %}
-
-                        <!-- Блок контента -->
-                        <div class="content-text">
-                            {% block content %}
-                            {% endblock %}
-                        </div>
-                        <!-- Конец блока контента -->
-
-                    </td>
-                </tr>
-            </table>
+                <!-- Блок контента -->
+                <div class="content-text">
+                  {% block content %} {% endblock %}
+                </div>
+                <!-- Конец блока контента -->
+              </td>
+            </tr>
+          </table>
         </td>
-    </tr>
-</table>
-</body>
+      </tr>
+    </table>
+  </body>
 </html>

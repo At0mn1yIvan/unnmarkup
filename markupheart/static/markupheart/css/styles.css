@@ -407,33 +407,16 @@ ul.lang-list li a:hover {color: #fdc073;}
     min-width: 200px;
     font-size: 16px;
 }
-/*Для графиков: */
-#scroll {
-        width: 50%;
-}
 
-table {
-    width: 50%;
-    border-collapse: collapse;
-    table-layout: fixed;
-}
 
-td {
-    width: 50%;
-    vertical-align: top;
-    padding: 10px; /* Добавляем отступы */
-    overflow: hidden;
-}
-
-.chart-container {
-    width: 100%; /* Занимает 100% внутри своей ячейки */
-    height: auto;
-}
-
-.grid line {
-    stroke: #e0e0e0;
-}
-
-.grid text {
-    font-size: 10px;
+#charts-container {
+	display: flex;
+	gap: 0; /* Убираем зазор между колонками */
+  }
+  
+#left-column,
+#right-column {
+	display: flex;
+	flex-direction: column;
+	gap: 0; /* Убираем зазор между графиками */
 }

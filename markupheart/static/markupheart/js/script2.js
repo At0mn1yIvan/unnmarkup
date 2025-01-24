@@ -477,8 +477,29 @@ function drawGrid(chartGroup, cellSize, gridWidth, gridHeight) {
   }
 }
 
+function drawChartName(svg, chartName) {
+  svg
+    .append("rect")
+    .attr("x", 10)
+    .attr("y", 15)
+    .attr("width", 54)
+    .attr("height", 50)
+    .attr("fill", "white");
+
+  svg
+    .append("text")
+    .attr("x", 37)
+    .attr("y", 52)
+    .attr("class", "chart-title")
+    .attr("text-anchor", "middle")
+    .attr("font-size", "36px")
+    .attr("font-family", "Yandex Sans Display Light")
+    .attr("fill", "black")
+    .text(chartName);
+}
+
 // Function to create ECG chart
-function createEcgChart(containerId, data, options) {
+function createEcgChart(containerId, data, options, chartName) {
   const { cellSize, visibleLength, gridWidth, gridHeight, maxMvValue } =
     options;
   
@@ -532,8 +553,11 @@ function createEcgChart(containerId, data, options) {
   const chartGroup = svg
     .append("g")
     .attr("clip-path", `url(#clip-${containerId})`);
+    //.attr("transform", "translate(0, 20)");
 
   drawGrid(chartGroup, cellSize, gridWidth, gridHeight);
+  
+  drawChartName(svg, chartName);
 
   const line = d3
     .line()
@@ -673,10 +697,8 @@ function handleDoubleClick(svg, xScale, xAxis, yScale, chartState, options) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const ecgData = window.ecgData[0];
-
   const visibleLength = 1000; // Количество отображаемых точек
-  const cellSize = 15; // Размер клетки в пикселях
+  const cellSize = 17; // Размер клетки в пикселях
   const gridWidth = 25 * (visibleLength / 1000); // Ширина сетки в клетках
   const maxMvValue = 2; // Максимальное значение в мВ
   const gridHeight = 20 * maxMvValue; // Высота сетки в клетках
@@ -689,5 +711,24 @@ document.addEventListener("DOMContentLoaded", () => {
     maxMvValue: maxMvValue,
   };
 
-  createEcgChart("grid-container", ecgData, chartOptions);
+  const leftColumn = document.getElementById("left-column");
+  const rightColumn = document.getElementById("right-column");
+
+  for (let i = 0; i < 12; i++) {
+    const ecgData = window.ecgData[i];
+    const chartName = window.ecgNames[i];
+
+    const chartDiv = document.createElement("div");
+    chartDiv.id = `chart-${i}`;
+    chartDiv.style.width = `${cellSize * gridWidth}px`;
+    chartDiv.style.height = `${cellSize * gridHeight}px`;
+
+    if (i < 6) {
+      leftColumn.appendChild(chartDiv);
+    } else {
+      rightColumn.appendChild(chartDiv);
+    }
+
+    createEcgChart(chartDiv.id, ecgData, chartOptions, chartName);
+  }
 });

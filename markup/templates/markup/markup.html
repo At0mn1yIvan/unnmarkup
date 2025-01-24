@@ -1,10 +1,26 @@
 {% extends "base.html" %}
+{% load static %}
+{% block script %}
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="{% static 'markupheart/js/script2.js' %}"></script>
+<script>
+    window.ecgData = {{ data | safe }};
+    window.ecgNames = {{ names | safe }};
+</script>
+{% endblock %}
 
 {% block content %}
 {% load markup_filters %}
 
-<!--<input type="range" id="scroll" min="0" value="0" step="1">-->
+{% comment %} <div id="grid-container"></div> {% endcomment %}
 
+<div id="charts-container" style="display: flex; gap: 0;">
+    <!-- Левая колонка -->
+    <div id="left-column" style="display: flex; flex-direction: column; gap: 0;"></div>
+    <!-- Правая колонка -->
+    <div id="right-column" style="display: flex; flex-direction: column; gap: 0;"></div>
+</div>
+{% comment %}
 <table>
     {% for i in 6|create_range %}
     <tr>
@@ -20,8 +36,11 @@
         </td>
     </tr>
     {% endfor %}
-</table>
+</table> {% endcomment %}
 
+
+
+{% comment %} старое: {% endcomment %}
 <!--{% for i in 6|create_range %}-->
 <!--&lt;!&ndash; Левая колонка &ndash;&gt;-->
 
@@ -33,13 +52,5 @@
 <!--<div id="chart-container_{{ names|return_item:j }}"></div>-->
 <!--{% endwith %}-->
 <!--{% endfor %}-->
-
-
-<!-- Передаем данные через глобальные переменные -->
-<script>
-    window.ecgData = {{ data | safe }};
-    window.ecgNames = {{ names | safe }};
-</script>
-
 
 {% endblock %}
