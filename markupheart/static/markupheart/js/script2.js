@@ -440,17 +440,30 @@
 // });
 
 
-// Function to handle idle timeout
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// КОД ПОСЛЕДНИЙ НЕ ТРОГАТЬ!
 function idled(chartState) {
   chartState.idleTimeout = null;
 }
 
-// Function to draw grid
 function drawGrid(chartGroup, cellSize, gridWidth, gridHeight) {
   const gridLines = chartGroup.append("g").attr("class", "grid-lines");
 
-  // Vertical lines
-  const gridWidthWhole = 125;
+  const gridWidthWhole = 250;
   for (let x = 0; x <= gridWidthWhole; x++) {
     gridLines
       .append("line")
@@ -459,11 +472,10 @@ function drawGrid(chartGroup, cellSize, gridWidth, gridHeight) {
       .attr("y1", 0)
       .attr("x2", x * cellSize)
       .attr("y2", cellSize * gridHeight)
-      .attr("stroke", x % 5 === 0 ? "black" : "gray")
-      .attr("stroke-width", x % 5 === 0 ? 0.8 : 0.5);
+      .attr("stroke", "gray")
+      .attr("stroke-width", x % 5 === 0 ? 1 : 0.5);
   }
 
-  // Horizontal lines
   for (let y = 0; y <= gridHeight; y++) {
     gridLines
       .append("line")
@@ -472,48 +484,28 @@ function drawGrid(chartGroup, cellSize, gridWidth, gridHeight) {
       .attr("y1", y * cellSize)
       .attr("x2", cellSize * gridWidth)
       .attr("y2", y * cellSize)
-      .attr("stroke", y % 5 === 0 ? "black" : "gray")
-      .attr("stroke-width", y % 5 === 0 ? 0.8 : 0.5);
+      .attr("stroke", "gray")
+      .attr("stroke-width", y % 5 === 0 ? 1 : 0.5);
   }
 }
 
-function drawChartName(svg, chartName) {
-  svg
-    .append("rect")
-    .attr("x", 10)
-    .attr("y", 15)
-    .attr("width", 54)
-    .attr("height", 50)
-    .attr("fill", "white");
-
-  svg
-    .append("text")
-    .attr("x", 37)
-    .attr("y", 52)
-    .attr("class", "chart-title")
-    .attr("text-anchor", "middle")
-    .attr("font-size", "36px")
-    .attr("font-family", "Yandex Sans Display Light")
-    .attr("fill", "black")
-    .text(chartName);
-}
-
-// Function to create ECG chart
-function createEcgChart(containerId, data, options, chartName) {
+function createEcgChartGroup(containerId, dataGroup, options, chartNames) {
   const { cellSize, visibleLength, gridWidth, gridHeight, maxMvValue } =
     options;
-  
+
   const chartState = {
     idleTimeout: null,
     savedLastFullDomain: null,
   };
 
+  const totalHeight = gridHeight * dataGroup.length;
+
   const svg = d3
     .select(`#${containerId}`)
     .append("svg")
     .attr("width", cellSize * gridWidth)
-    .attr("height", cellSize * gridHeight)
-    .attr("viewBox", `0 0 ${cellSize * gridWidth} ${cellSize * gridHeight}`);
+    .attr("height", cellSize * totalHeight)
+    .attr("viewBox", `0 0 ${cellSize * gridWidth} ${cellSize * totalHeight}`);
 
   const xScale = d3
     .scaleLinear()
@@ -527,7 +519,7 @@ function createEcgChart(containerId, data, options, chartName) {
 
   const xAxis = svg
     .append("g")
-    .attr("transform", `translate(0, ${cellSize * gridHeight})`)
+    .attr("transform", `translate(0, ${cellSize * totalHeight})`)
     .call(d3.axisBottom(xScale));
 
   const clip = svg
@@ -536,7 +528,7 @@ function createEcgChart(containerId, data, options, chartName) {
     .attr("id", `clip-${containerId}`)
     .append("svg:rect")
     .attr("width", cellSize * gridWidth)
-    .attr("height", cellSize * gridHeight)
+    .attr("height", cellSize * totalHeight)
     .attr("x", 0)
     .attr("y", 0);
 
@@ -544,55 +536,145 @@ function createEcgChart(containerId, data, options, chartName) {
     .brushX()
     .extent([
       [0, 0],
-      [cellSize * gridWidth, cellSize * gridHeight],
+      [cellSize * gridWidth, cellSize * totalHeight],
     ])
+
     .on("end", (event) =>
-      updateChart(event, svg, xScale, xAxis, yScale, chartState, options)
+      updateBrushEvent(event, svg, xScale, xAxis, yScale, chartState, dataGroup, options)
     );
 
   const chartGroup = svg
     .append("g")
     .attr("clip-path", `url(#clip-${containerId})`);
-    //.attr("transform", "translate(0, 20)");
 
-  drawGrid(chartGroup, cellSize, gridWidth, gridHeight);
-  
-  drawChartName(svg, chartName);
+  drawGrid(chartGroup, cellSize, gridWidth, totalHeight);
 
-  const line = d3
-    .line()
-    .x((d, i) => xScale(i))
-    .y((d) => yScale(d))
-    .curve(d3.curveLinear);
+  dataGroup.forEach((data, index) => {
+    const yOffset = index * gridHeight * cellSize;
 
-  chartGroup
-    .append("path")
-    .datum(data)
-    .attr("class", "line")
-    .attr("fill", "none")
-    .attr("stroke", "blue")
-    .attr("stroke-width", 1)
-    .attr("d", line);
+    const line = d3
+      .line()
+      .x((d, i) => xScale(i))
+      .y((d) => yScale(d) + yOffset)
+      .curve(d3.curveLinear);
+
+    chartGroup
+      .append("path")
+      .datum(data)
+      .attr("class", "line")
+      .attr("fill", "none")
+      .attr("stroke", "blue")
+      .attr("stroke-width", 1.2)
+      .attr("d", line);
+
+    chartGroup
+      .append("text")
+      .attr("x", 10)
+      .attr("y", yOffset + 20)
+      .attr("font-size", "16px")
+      .attr("font-family", "Yandex Sans Display Light")
+      .attr("fill", "black")
+      .text(chartNames[index]);
+  });
 
   chartGroup.append("g").attr("class", "brush").call(brush);
 
   svg.on("wheel", (event) =>
-    handleScroll(event, svg, xScale, xAxis, yScale, data, options)
+    handleScroll(event, svg, xScale, xAxis, yScale, dataGroup, options)
   );
 
   svg.on("dblclick", () =>
-    handleDoubleClick(svg, xScale, xAxis, yScale, chartState, options)
+    handleDoubleClick(svg, xScale, xAxis, yScale, chartState, dataGroup, options)
   );
 }
 
+function updateChart(svg, xScale, xAxis, yScale, dataGroup, options) {
+  // requestAnimationFrame(() => {
+  //   xAxis.call(d3.axisBottom(xScale));
+  //   svg.selectAll(".line").attr("d", (d, i) => {
+  //     const yOffset = i * options.gridHeight * options.cellSize;
+  //     return d3
+  //       .line()
+  //       .x((d, i) => xScale(i))
+  //       .y((d) => yScale(d) + yOffset)
+  //       .curve(d3.curveLinear)(d);
+  //   });
+  //   svg
+  //     .selectAll(".grid-lines .line-vertical")
+  //     .attr("x1", (d, i) =>
+  //       xScale((i * options.visibleLength) / options.gridWidth)
+  //     )
+  //     .attr("x2", (d, i) =>
+  //       xScale((i * options.visibleLength) / options.gridWidth)
+  //     );
+  // });
+
+  //requestAnimationFrame(() => {
+    const start = Math.floor(xScale.domain()[0]);
+    const end = Math.ceil(xScale.domain()[1]);
+
+    xAxis.call(d3.axisBottom(xScale));
+    svg.selectAll(".line").each(function (d, i) {
+      
+
+      const visibleData = dataGroup[i].slice(start, end);
+
+      d3.select(this)
+        .datum(visibleData)
+        .attr("d", d3.line()
+          .x((d, i) => xScale(start + i))
+          .y((d) => yScale(d) + i * options.gridHeight * options.cellSize)
+          .curve(d3.curveLinear));
+    });
+
+    svg
+      .selectAll(".grid-lines .line-vertical")
+      .attr("x1", (d, i) =>
+        xScale((i * options.visibleLength) / options.gridWidth)
+      )
+      .attr("x2", (d, i) =>
+        xScale((i * options.visibleLength) / options.gridWidth)
+      );
+
+    // svg.selectAll(".grid-lines .line-vertical").each(function(d, i){
+    //     const line = d3.select(this);
+    //     const xPos = xScale(i);
+
+    //     if (xPos >= start && xPos <= end) {
+    //       line.attr("x1", (d, i) =>
+    //         xScale((i * options.visibleLength) / options.gridWidth))
+    //       .attr("x2", (d, i) =>
+    //         xScale((i * options.visibleLength) / options.gridWidth));
+    //     }
+    //     else {
+    //       line.remove();
+    //     }
+    // });
+      
+  //});
+}
+
+
 // Function to update chart on brush event
-function updateChart(event, svg, xScale, xAxis, yScale, chartState, options) {
-  const { visibleLength, gridWidth } = options;
+function updateBrushEvent(
+  event,
+  svg,
+  xScale,
+  xAxis,
+  yScale,
+  chartState,
+  dataGroup,
+  options
+) {
   const extent = event.selection;
 
   if (!extent) {
-    if (!chartState.idleTimeout) return (chartState.idleTimeout = setTimeout(() => idled(chartState), 350));
-    xScale.domain(chartState.savedLastFullDomain || [0, visibleLength]);
+    if (!chartState.idleTimeout)
+      return (chartState.idleTimeout = setTimeout(
+        () => idled(chartState),
+        350
+      ));
+    xScale.domain(chartState.savedLastFullDomain || [0, options.visibleLength]);
   } else {
     if (!chartState.savedLastFullDomain) {
       chartState.savedLastFullDomain = xScale.domain();
@@ -601,32 +683,28 @@ function updateChart(event, svg, xScale, xAxis, yScale, chartState, options) {
     svg.select(".brush").call(d3.brushX().move, null);
   }
 
-  xAxis.transition().duration(1000).call(d3.axisBottom(xScale));
-
-  svg
-    .select(".line")
-    .transition()
-    .duration(1000)
-    .attr(
-      "d",
-      d3
-        .line()
-        .x((d, i) => xScale(i))
-        .y((d) => yScale(d))
-    );
-
-  svg
-    .selectAll(".grid-lines .line-vertical")
-    .transition()
-    .duration(1000)
-    .attr("x1", (d, i) => xScale((i * visibleLength) / gridWidth))
-    .attr("x2", (d, i) => xScale((i * visibleLength) / gridWidth));
+  updateChart(svg, xScale, xAxis, yScale, dataGroup, options);
+  // xAxis.transition().duration(1000).call(d3.axisBottom(xScale));
+  // svg
+  //   .selectAll(".line")
+  //   .transition()
+  //   .duration(1000)
+  //   .attr("d", (d, i) => {
+  //     const yOffset = i * options.gridHeight * options.cellSize;
+  //     return d3.line()
+  //       .x((d, i) => xScale(i))
+  //       .y((d) => yScale(d) + yOffset)
+  //       .curve(d3.curveLinear)(d);
+  // });
+  // svg
+  //   .selectAll(".grid-lines .line-vertical")
+  //   .transition()
+  //   .duration(1000)
+  //   .attr("x1", (d, i) => xScale((i * options.visibleLength) / options.gridWidth))
+  //   .attr("x2", (d, i) => xScale((i * options.visibleLength) / options.gridWidth));
 }
 
-// Function to handle scroll event
-function handleScroll(event, svg, xScale, xAxis, yScale, data, options) {
-  const { visibleLength, gridWidth } = options;
-
+function handleScroll(event, svg, xScale, xAxis, yScale, dataGroup, options) {
   if (!event.altKey) return;
   event.preventDefault();
 
@@ -641,65 +719,63 @@ function handleScroll(event, svg, xScale, xAxis, yScale, data, options) {
   if (newDomain[0] < 0) {
     newDomain = [0, domainWidth];
   }
-  if (newDomain[1] > data.length) {
-    newDomain = [data.length - domainWidth, data.length];
+  if (newDomain[1] > dataGroup[0].length) {
+    newDomain = [dataGroup[0].length - domainWidth, dataGroup[0].length];
   }
 
   xScale.domain(newDomain);
 
-  xAxis.transition().call(d3.axisBottom(xScale));
+  updateChart(svg, xScale, xAxis, yScale, dataGroup, options);
 
-  svg.select(".line").attr(
-    "d",
-    d3
-      .line()
-      .x((d, i) => xScale(i))
-      .y((d) => yScale(d))
-  );
-
-  svg
-    .selectAll(".grid-lines .line-vertical")
-    .attr("x1", (d, i) => xScale((i * visibleLength) / gridWidth))
-    .attr("x2", (d, i) => xScale((i * visibleLength) / gridWidth));
+  // xAxis.transition().call(d3.axisBottom(xScale));
+  // svg
+  //   .selectAll(".line")
+  //   .attr("d", (d, i) => {
+  //     const yOffset = i * options.gridHeight * options.cellSize;
+  //     return d3.line()
+  //       .x((d, i) => xScale(i))
+  //       .y((d) => yScale(d) + yOffset)
+  //       .curve(d3.curveLinear)(d);
+  // });
+  // svg
+  //   .selectAll(".grid-lines .line-vertical")
+  //   .attr("x1", (d, i) => xScale((i * options.visibleLength) / options.gridWidth))
+  //   .attr("x2", (d, i) => xScale((i * options.visibleLength) / options.gridWidth));
 }
 
-// Function to handle double-click event
-function handleDoubleClick(svg, xScale, xAxis, yScale, chartState, options) {
-  const { visibleLength, gridWidth } = options;
-
+function handleDoubleClick(svg, xScale, xAxis, yScale, chartState, dataGroup, options) {
   if (chartState.savedLastFullDomain) {
     xScale.domain(chartState.savedLastFullDomain);
     chartState.savedLastFullDomain = null;
   } else {
-    xScale.domain([0, visibleLength]);
+    xScale.domain([0, options.visibleLength]);
   }
 
-  xAxis.transition().duration(1000).call(d3.axisBottom(xScale));
-
-  svg
-    .select(".line")
-    .transition()
-    .duration(1000)
-    .attr(
-      "d",
-      d3
-        .line()
-        .x((d, i) => xScale(i))
-        .y((d) => yScale(d))
-    );
-
-  svg
-    .selectAll(".grid-lines .line-vertical")
-    .transition()
-    .duration(1000)
-    .attr("x1", (d, i) => xScale((i * visibleLength) / gridWidth))
-    .attr("x2", (d, i) => xScale((i * visibleLength) / gridWidth));
+  updateChart(svg, xScale, xAxis, yScale, dataGroup, options);
+  // xAxis.transition().duration(1000).call(d3.axisBottom(xScale));
+  // svg
+  //   .selectAll(".line")
+  //   .transition()
+  //   .duration(1000)
+  //   .attr("d", (d, i) => {
+  //     const yOffset = i * options.gridHeight * options.cellSize;
+  //     return d3.line()
+  //       .x((d, i) => xScale(i))
+  //       .y((d) => yScale(d) + yOffset)
+  //       .curve(d3.curveLinear)(d);
+  // });
+  // svg
+  //   .selectAll(".grid-lines .line-vertical")
+  //   .transition()
+  //   .duration(1000)
+  //   .attr("x1", (d, i) => xScale((i * options.visibleLength) / options.gridWidth))
+  //   .attr("x2", (d, i) => xScale((i * options.visibleLength) / options.gridWidth));
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const visibleLength = 1000; // Количество отображаемых точек
-  const cellSize = 17; // Размер клетки в пикселях
-  const gridWidth = 25 * (visibleLength / 1000); // Ширина сетки в клетках
+  const visibleLength = 1500; // Количество отображаемых точек
+  const cellSize = 7; // Размер клетки в пикселях
+  const gridWidth = 25 * (visibleLength / 500); // Ширина сетки в клетках
   const maxMvValue = 2; // Максимальное значение в мВ
   const gridHeight = 20 * maxMvValue; // Высота сетки в клетках
 
@@ -711,24 +787,16 @@ document.addEventListener("DOMContentLoaded", () => {
     maxMvValue: maxMvValue,
   };
 
-  const leftColumn = document.getElementById("left-column");
-  const rightColumn = document.getElementById("right-column");
-
-  for (let i = 0; i < 12; i++) {
-    const ecgData = window.ecgData[i];
-    const chartName = window.ecgNames[i];
-
-    const chartDiv = document.createElement("div");
-    chartDiv.id = `chart-${i}`;
-    chartDiv.style.width = `${cellSize * gridWidth}px`;
-    chartDiv.style.height = `${cellSize * gridHeight}px`;
-
-    if (i < 6) {
-      leftColumn.appendChild(chartDiv);
-    } else {
-      rightColumn.appendChild(chartDiv);
-    }
-
-    createEcgChart(chartDiv.id, ecgData, chartOptions, chartName);
-  }
+  createEcgChartGroup(
+    "left-column",
+    window.ecgData.slice(0, 6),
+    chartOptions,
+    window.ecgNames.slice(0, 6)
+  );
+  createEcgChartGroup(
+    "right-column",
+    window.ecgData.slice(6, 12),
+    chartOptions,
+    window.ecgNames.slice(6, 12)
+  );
 });
