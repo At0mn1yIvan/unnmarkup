@@ -1,460 +1,3 @@
-// Функционал с динамической отрисовкой графика:
-// function drawGrid(chartGroup, cellSize, gridWidth, gridHeight) {
-//   const gridLines = chartGroup.append("g").attr("class", "grid-lines");
-
-//   const gridWidthWhole = 125;
-//   // Вертикальные линии (рисуем сразу все линии)
-//   for (let x = 0; x <= gridWidthWhole; x++) {
-//     gridLines
-//       .append("line")
-//       .attr("class", "line-vertical")
-//       .attr("x1", x * cellSize)
-//       .attr("y1", 0)
-//       .attr("x2", x * cellSize)
-//       .attr("y2", cellSize * gridHeight)
-//       .attr("stroke", x % 5 === 0 ? "black" : "gray")
-//       .attr("stroke-width", x % 5 === 0 ? 0.8 : 0.5);
-//   }
-
-//   // Горизонтальные линии
-//   for (let y = 0; y <= gridHeight; y++) {
-//     gridLines
-//       .append("line")
-//       .attr("class", "line-horizontal")
-//       .attr("x1", 0)
-//       .attr("y1", y * cellSize)
-//       .attr("x2", cellSize * gridWidth)
-//       .attr("y2", y * cellSize)
-//       .attr("stroke", y % 5 === 0 ? "black" : "gray")
-//       .attr("stroke-width", y % 5 === 0 ? 0.8 : 0.5);
-//   }
-// }
-
-// document.addEventListener("DOMContentLoaded", () => {
-//   const containerId = "grid-container";
-//   const visibleLength = 2000; // Количество отображаемых точек
-//   const cellSize = 15; // Размер клетки в пикселях
-//   const gridWidth = 25 * (visibleLength / 1000); // Ширина сетки в клетках
-//   const maxMvValue = 2; // Максимальное значение в мВ
-//   const gridHeight = 20 * maxMvValue; // Высота сетки в клетках
-
-//   const ecgData = window.ecgData;
-//   const data = ecgData[0];
-
-//   visibleData = data.slice(0, visibleLength);
-//   // visibleData = data;
-
-//   const svg = d3
-//     .select(`#${containerId}`)
-//     .append("svg")
-//     .attr("width", cellSize * gridWidth)
-//     .attr("height", cellSize * gridHeight)
-//     .attr("viewBox", `0 0 ${cellSize * gridWidth} ${cellSize * gridHeight}`); // определяет координатную систему внутри SVG;
-
-//   const xScale = d3
-//     .scaleLinear()
-//     .domain([0, visibleLength]) // задаёт диапазон данных: [0, visibleLength] (индексы точек на графике).
-//     .range([0, cellSize * gridWidth]); // определяет отображение этого диапазона на пиксели;
-
-//   xAxis = svg
-//     .append("g") // добавляет новую группу элементов <g> в SVG. Группы <g> объединяют элементы, чтобы применять к ним общие трансформации, стили и атрибуты;
-//     .attr("transform", `translate(0, ${cellSize * gridHeight})`) // перемещает ось вниз на высоту сетки, чтобы она располагалась внизу графика;
-//     .call(d3.axisBottom(xScale)); // создаёт ось, ориентированную снизу;
-
-//   const yScale = d3
-//     .scaleLinear()
-//     .domain([-maxMvValue, maxMvValue])
-//     .range([cellSize * gridHeight, 0]);
-
-//   const clip = svg
-//     .append("defs") // контейнер для элементов, которые определяют графические шаблоны или эффекты;
-//     .append("svg:clipPath") // определяет область клиппинга;
-//     .attr("id", "clip")
-//     .append("svg:rect") // задание формы клиппинга;
-//     .attr("width", cellSize * gridWidth)
-//     .attr("height", cellSize * gridHeight)
-//     .attr("x", 0)
-//     .attr("y", 0);
-
-//   const brush = d3
-//     .brushX()
-//     .extent([
-//       [0, 0],
-//       [cellSize * gridWidth, cellSize * gridHeight],
-//     ]) // задаёт размеры области, в которой можно выделять;
-//     .on("end", updateChart);
-
-//   const chartGroup = svg.append("g").attr("clip-path", "url(#clip)"); // привязывает клиппинг к группе, где лежит график. Все элементы внутри chartGroup обрезаются по области клиппинга;
-
-//   drawGrid(chartGroup, cellSize, gridWidth, gridHeight);
-
-//   const line = d3
-//     .line()
-//     .x((d, i) => xScale(i)) // преобразует индекс данных i в пиксельное значение на оси X;
-//     .y((d) => yScale(d)) // преобразует значение данных d в пиксельное значение на оси Y;
-//     .curve(d3.curveLinear);
-
-//   chartGroup
-//     .append("path")
-//     .datum(visibleData)
-//     .attr("class", "line")
-//     .attr("fill", "none")
-//     .attr("stroke", "blue")
-//     .attr("stroke-width", 1)
-//     .attr("d", line);
-
-//   chartGroup.append("g").attr("class", "brush").call(brush); // Добавляет область выделения (brush) в группу графика;
-
-//   let idleTimeout;
-//   function idled() {
-//     idleTimeout = null;
-//   }
-
-//   function updateChart(event, d) {
-//     extent = event.selection;
-
-//     if (!extent) {
-//       if (!idleTimeout) return (idleTimeout = setTimeout(idled, 350));
-//       xScale.domain([0, visibleLength]);
-//     } else {
-//       xScale.domain([xScale.invert(extent[0]), xScale.invert(extent[1])]);
-//       chartGroup.select(".brush").call(brush.move, null); // сброс выделения после завершения брашинга;
-//     }
-
-//     xAxis.transition().duration(1000).call(d3.axisBottom(xScale)); // обновление оси для пересчёта отметок по новому диапазону данных xScale.domain;
-//     chartGroup
-//       .select(".line")
-//       .transition()
-//       .duration(1000)
-//       .attr(
-//         "d",
-//         d3
-//           .line()
-//           .x((d, i) => xScale(i))
-//           .y((d) => yScale(d))
-//       ); // пересчёт пути линии (d), с обновлённым xScale;
-
-//     svg
-//       .selectAll(".grid-lines .line-vertical")
-//       .transition()
-//       .duration(1000)
-//       .attr("x1", (d, i) => xScale((i * visibleLength) / gridWidth))
-//       .attr("x2", (d, i) => xScale((i * visibleLength) / gridWidth));
-//   }
-
-//   svg.on("wheel", function (event) {
-//     if (!event.altKey) return;
-
-//     event.preventDefault();
-
-//     const currentDomain = xScale.domain();
-
-//     let newDomain = [
-//       currentDomain[0] + event.deltaY,
-//       currentDomain[1] + event.deltaY,
-//     ];
-
-//     // Ограничиваем левую границу
-//     if (newDomain[0] < 0) {
-//       const domainWidth = newDomain[1] - newDomain[0];
-//       newDomain[0] = 0;
-//       newDomain[1] = domainWidth;
-//     }
-
-//     // Ограничиваем правую границу
-//     if (newDomain[1] > data.length) {
-//       const domainWidth = newDomain[1] - newDomain[0];
-//       newDomain[1] = data.length;
-//       newDomain[0] = data.length - domainWidth;
-//     }
-
-//     xScale.domain(newDomain); // Обновляем масштаб оси X
-
-//     // Обновляем данные для графика
-//     const startIndex = Math.max(0, newDomain[0]);
-//     const endIndex = Math.min(data.length, newDomain[1]);
-//     const visibleData = data.slice(startIndex, endIndex);
-
-//     xAxis.transition().call(d3.axisBottom(xScale));
-
-//     chartGroup
-//       .select(".line")
-//       .datum(visibleData)
-//       .attr(
-//         "d",
-//         d3
-//           .line()
-//           .x((d, i) => xScale(startIndex + i))
-//           .y((d) => yScale(d))
-//       ); // пересчёт пути линии (d), с обновлённым xScale;
-
-//     svg
-//       .selectAll(".grid-lines .line-vertical")
-//       .attr("x1", (d, i) => xScale((i * visibleLength) / gridWidth))
-//       .attr("x2", (d, i) => xScale((i * visibleLength) / gridWidth));
-//   });
-
-//   svg.on("dblclick", function () {
-//     xScale.domain([0, visibleLength]);
-//     xAxis.transition().duration(1000).call(d3.axisBottom(xScale));
-//     line
-//       .select(".line")
-//       .transition()
-//       .attr(
-//         "d",
-//         d3
-//           .line()
-//           .x((d, i) => xScale(i))
-//           .y((d) => yScale(d))
-//       );
-
-//     svg
-//       .selectAll(".grid-lines .line-vertical")
-//       .transition()
-//       .duration(1000)
-//       .attr("x1", (d, i) => i * cellSize)
-//       .attr("x2", (d, i) => i * cellSize);
-//   });
-// });
-
-// ТЕКУЩИЙ КОД
-
-// function drawGrid(chartGroup, cellSize, gridWidth, gridHeight) {
-//   const gridLines = chartGroup.append("g").attr("class", "grid-lines");
-
-//   const gridWidthWhole = 125;
-//   // Вертикальные линии (рисуем сразу все линии)
-//   for (let x = 0; x <= gridWidthWhole; x++) {
-//     gridLines
-//       .append("line")
-//       .attr("class", "line-vertical")
-//       .attr("x1", x * cellSize)
-//       .attr("y1", 0)
-//       .attr("x2", x * cellSize)
-//       .attr("y2", cellSize * gridHeight)
-//       .attr("stroke", x % 5 === 0 ? "black" : "gray")
-//       .attr("stroke-width", x % 5 === 0 ? 0.8 : 0.5);
-//   }
-
-//   // Горизонтальные линии
-//   for (let y = 0; y <= gridHeight; y++) {
-//     gridLines
-//       .append("line")
-//       .attr("class", "line-horizontal")
-//       .attr("x1", 0)
-//       .attr("y1", y * cellSize)
-//       .attr("x2", cellSize * gridWidth)
-//       .attr("y2", y * cellSize)
-//       .attr("stroke", y % 5 === 0 ? "black" : "gray")
-//       .attr("stroke-width", y % 5 === 0 ? 0.8 : 0.5);
-//   }
-// }
-
-// document.addEventListener("DOMContentLoaded", () => {
-//   const containerId = "grid-container";
-//   const visibleLength = 1000; // Количество отображаемых точек
-//   const cellSize = 15; // Размер клетки в пикселях
-//   const gridWidth = 25 * (visibleLength / 1000); // Ширина сетки в клетках
-//   const maxMvValue = 2; // Максимальное значение в мВ
-//   const gridHeight = 20 * maxMvValue; // Высота сетки в клетках
-
-//   const ecgData = window.ecgData;
-//   const data = ecgData[0];
-
-//   // visibleData = data.slice(0, visibleLength);
-
-//   const svg = d3
-//     .select(`#${containerId}`)
-//     .append("svg")
-//     .attr("width", cellSize * gridWidth)
-//     .attr("height", cellSize * gridHeight)
-//     .attr("viewBox", `0 0 ${cellSize * gridWidth} ${cellSize * gridHeight}`); // определяет координатную систему внутри SVG;
-
-//   const xScale = d3
-//     .scaleLinear()
-//     .domain([0, visibleLength]) // задаёт диапазон данных: [0, visibleLength] (индексы точек на графике).
-//     .range([0, cellSize * gridWidth]); // определяет отображение этого диапазона на пиксели;
-
-//   xAxis = svg
-//     .append("g") // добавляет новую группу элементов <g> в SVG. Группы <g> объединяют элементы, чтобы применять к ним общие трансформации, стили и атрибуты;
-//     .attr("transform", `translate(0, ${cellSize * gridHeight})`) // перемещает ось вниз на высоту сетки, чтобы она располагалась внизу графика;
-//     .call(d3.axisBottom(xScale)); // создаёт ось, ориентированную снизу;
-
-//   const yScale = d3
-//     .scaleLinear()
-//     .domain([-maxMvValue, maxMvValue])
-//     .range([cellSize * gridHeight, 0]);
-
-//   const clip = svg
-//     .append("defs") // контейнер для элементов, которые определяют графические шаблоны или эффекты;
-//     .append("svg:clipPath") // определяет область клиппинга;
-//     .attr("id", "clip")
-//     .append("svg:rect") // задание формы клиппинга;
-//     .attr("width", cellSize * gridWidth)
-//     .attr("height", cellSize * gridHeight)
-//     .attr("x", 0)
-//     .attr("y", 0);
-
-//   const brush = d3
-//     .brushX()
-//     .extent([
-//       [0, 0],
-//       [cellSize * gridWidth, cellSize * gridHeight],
-//     ]) // задаёт размеры области, в которой можно выделять;
-//     .on("end", updateChart);
-
-//   const chartGroup = svg.append("g").attr("clip-path", "url(#clip)"); // привязывает клиппинг к группе, где лежит график. Все элементы внутри chartGroup обрезаются по области клиппинга;
-
-//   drawGrid(chartGroup, cellSize, gridWidth, gridHeight);
-
-//   const line = d3
-//     .line()
-//     .x((d, i) => xScale(i)) // преобразует индекс данных i в пиксельное значение на оси X;
-//     .y((d) => yScale(d)) // преобразует значение данных d в пиксельное значение на оси Y;
-//     .curve(d3.curveLinear);
-
-//   chartGroup
-//     .append("path")
-//     .datum(data)
-//     .attr("class", "line")
-//     .attr("fill", "none")
-//     .attr("stroke", "blue")
-//     .attr("stroke-width", 1)
-//     .attr("d", line);
-
-//   chartGroup.append("g").attr("class", "brush").call(brush); // Добавляет область выделения (brush) в группу графика;
-
-//   let idleTimeout;
-//   let savedLastFullDomain;
-//   function idled() {
-//     idleTimeout = null;
-//   }
-
-//   function updateChart(event, d) {
-//     extent = event.selection;
-//     if (!extent) {
-//       if (!idleTimeout) return (idleTimeout = setTimeout(idled, 350));
-//       xScale.domain(savedLastFullDomain || [0, visibleLength]);
-//     } else {
-//       if (!savedLastFullDomain) {
-//         savedLastFullDomain = xScale.domain();
-//       }
-//       xScale.domain([xScale.invert(extent[0]), xScale.invert(extent[1])]);
-//       chartGroup.select(".brush").call(brush.move, null); // сброс выделения после завершения брашинга; снова вызывает updateChart;
-//     }
-
-//     xAxis.transition().duration(1000).call(d3.axisBottom(xScale)); // обновление оси для пересчёта отметок по новому диапазону данных xScale.domain;
-//     chartGroup
-//       .select(".line")
-//       .transition()
-//       .duration(1000)
-//       .attr(
-//         "d",
-//         d3
-//           .line()
-//           .x((d, i) => xScale(i))
-//           .y((d) => yScale(d))
-//       ); // пересчёт пути линии (d), с обновлённым xScale;
-
-//     svg
-//       .selectAll(".grid-lines .line-vertical")
-//       .transition()
-//       .duration(1000)
-//       .attr("x1", (d, i) => xScale((i * visibleLength) / gridWidth))
-//       .attr("x2", (d, i) => xScale((i * visibleLength) / gridWidth));
-//   }
-
-//   svg.on("wheel", function (event) {
-//     if (!event.altKey) return;
-
-//     event.preventDefault();
-
-//     const currentDomain = xScale.domain();
-//     const domainWidth = currentDomain[1] - currentDomain[0];
-
-//     let newDomain = [
-//       currentDomain[0] + event.deltaY,
-//       currentDomain[1] + event.deltaY,
-//     ];
-
-//     if (newDomain[0] < 0) {
-//       newDomain = [0, domainWidth];
-//     }
-//     if (newDomain[1] > data.length) {
-//       newDomain = [data.length - domainWidth, data.length];
-//     }
-
-//     // Обновляем масштаб оси X
-//     xScale.domain(newDomain);
-
-//     // Обновляем ось X
-//     xAxis.transition().call(d3.axisBottom(xScale));
-
-//     // Обновляем график
-//     chartGroup.select(".line").attr(
-//       "d",
-//       d3
-//         .line()
-//         .x((d, i) => xScale(i)) // Полный доступ ко всем данным
-//         .y((d) => yScale(d))
-//     );
-
-//     svg
-//       .selectAll(".grid-lines .line-vertical")
-//       .attr("x1", (d, i) => xScale((i * visibleLength) / gridWidth))
-//       .attr("x2", (d, i) => xScale((i * visibleLength) / gridWidth));
-//   });
-
-//   svg.on("dblclick", function () {
-//     if (savedLastFullDomain) {
-//       xScale.domain(savedLastFullDomain);
-//       savedLastFullDomain = null;
-//     } else {
-//       xScale.domain([0, visibleLength]);
-//     }
-//     // xScale.domain([0, visibleLength]);
-
-//     xAxis.transition().duration(1000).call(d3.axisBottom(xScale));
-
-//     chartGroup
-//       .select(".line")
-//       .transition()
-//       .duration(1000)
-//       .attr(
-//         "d",
-//         d3
-//           .line()
-//           .x((d, i) => xScale(i))
-//           .y((d) => yScale(d))
-//       );
-
-//     svg
-//       .selectAll(".grid-lines .line-vertical")
-//       .transition()
-//       .duration(1000)
-//       .attr("x1", (d, i) => xScale((i * visibleLength) / gridWidth))
-//       .attr("x2", (d, i) => xScale((i * visibleLength) / gridWidth));
-//     //.attr("x1", (d, i) => i * cellSize)
-//     //.attr("x2", (d, i) => i * cellSize);
-//   });
-// });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // КОД ПОСЛЕДНИЙ НЕ ТРОГАТЬ!
 function idled(chartState) {
   chartState.idleTimeout = null;
@@ -489,12 +32,61 @@ function drawGrid(chartGroup, cellSize, gridWidth, gridHeight) {
   }
 }
 
+function updateGrid(svg, xScale, dataGroup, options) {
+  // Постоянные константы вынести уровнем выше. !!!
+  const gridWidthWhole = 250;
+  const totalHeight = options.gridHeight * dataGroup.length;
+  const step = options.visibleLength / options.gridWidth;
+
+  // Начало и конец видимых данных.
+  const start = Math.floor(xScale.domain()[0]);
+  const end = Math.ceil(xScale.domain()[1]);
+
+  // Массив с индексами только тех линий, что должны быть видны.
+  const visibleIndices = d3
+    .range(0, gridWidthWhole) // Общее количество возможных клеток (250).
+    .filter((i) => {
+      const xValue = i * step;
+      return xValue >= start && xValue <= end;
+    });
+
+  const gridLines = svg
+    .select(".grid-lines") // Ищем группу, в которой находятся линии.
+    .selectAll(".line-vertical") // Выбираем все вертикальные линии сетки (по X).
+    .data(visibleIndices, (d) => d); // Связываем массив индексов видимых линий с svg элементами класса "line-vertical".
+
+  // D3 сравнивает новые данные с текущими элементами и определяет, что нужно добавить, обновить или удалить.
+  // D3 делит элементы на 3 группы:
+  // 1) enter - элементы, которых нет в DOM, но есть в данных - создаём их.
+  // 2) update - элементы, которые есть в DOM и есть в данных - обновляем их.
+  // 3) exit - элементы, которые есть в DOM, но нет в данных - удаляем их.
+  // join() автоматически обрабатывает добавление, обновление и удаление элементов.
+  gridLines.join(
+    (enter) =>
+      enter
+        .append("line")
+        .attr("class", "line-vertical")
+        .attr("x1", (d) => xScale(d * step))
+        .attr("y1", 0)
+        .attr("x2", (d) => xScale(d * step))
+        .attr("y2", options.cellSize * totalHeight)
+        .attr("stroke", "gray")
+        .attr("stroke-width", (i) => (i % 5 === 0 ? 1 : 0.5)),
+    (update) =>
+      update
+        .attr("x1", (d) => xScale(d * step))
+        .attr("x2", (d) => xScale(d * step)),
+    (exit) => exit.remove()
+  );
+}
+
 function createEcgChartGroup(containerId, dataGroup, options, chartNames) {
   const { cellSize, visibleLength, gridWidth, gridHeight, maxMvValue } =
     options;
 
   const chartState = {
     idleTimeout: null,
+    throttleTimeout: null,
     savedLastFullDomain: null,
   };
 
@@ -540,7 +132,16 @@ function createEcgChartGroup(containerId, dataGroup, options, chartNames) {
     ])
 
     .on("end", (event) =>
-      updateBrushEvent(event, svg, xScale, xAxis, yScale, chartState, dataGroup, options)
+      updateBrushEvent(
+        event,
+        svg,
+        xScale,
+        xAxis,
+        yScale,
+        chartState,
+        dataGroup,
+        options
+      )
     );
 
   const chartGroup = svg
@@ -580,80 +181,96 @@ function createEcgChartGroup(containerId, dataGroup, options, chartNames) {
   chartGroup.append("g").attr("class", "brush").call(brush);
 
   svg.on("wheel", (event) =>
-    handleScroll(event, svg, xScale, xAxis, yScale, dataGroup, options)
+    handleScroll(
+      event,
+      svg,
+      xScale,
+      xAxis,
+      yScale,
+      chartState,
+      dataGroup,
+      options
+    )
   );
 
   svg.on("dblclick", () =>
-    handleDoubleClick(svg, xScale, xAxis, yScale, chartState, dataGroup, options)
+    handleDoubleClick(
+      svg,
+      xScale,
+      xAxis,
+      yScale,
+      chartState,
+      dataGroup,
+      options
+    )
   );
 }
 
 function updateChart(svg, xScale, xAxis, yScale, dataGroup, options) {
-  // requestAnimationFrame(() => {
-  //   xAxis.call(d3.axisBottom(xScale));
-  //   svg.selectAll(".line").attr("d", (d, i) => {
-  //     const yOffset = i * options.gridHeight * options.cellSize;
-  //     return d3
-  //       .line()
-  //       .x((d, i) => xScale(i))
-  //       .y((d) => yScale(d) + yOffset)
-  //       .curve(d3.curveLinear)(d);
-  //   });
-  //   svg
-  //     .selectAll(".grid-lines .line-vertical")
-  //     .attr("x1", (d, i) =>
-  //       xScale((i * options.visibleLength) / options.gridWidth)
-  //     )
-  //     .attr("x2", (d, i) =>
-  //       xScale((i * options.visibleLength) / options.gridWidth)
+  const yOffset = options.gridHeight * options.cellSize; // Сдвиг графиков вниз по Y, чтобы отобразить все 6 графиков на одном SVG.
+
+  // Начало и конец видимых данных.
+  const start = Math.floor(xScale.domain()[0]);
+  const end = Math.ceil(xScale.domain()[1]);
+
+  // xAxis.call(d3.axisBottom(xScale));
+
+  const charts = 
+    svg.selectAll(".line") // Выбираем все линии графиков.
+      .data(dataGroup); // Привязывает массив dataGroup, где каждый элемент массива соответствует одному графику (линии).
+
+  const chartGenerator = (data, index) =>
+    d3.line()
+      .x((d, i) => xScale(start + i)) // i - локальный индекс точки в текущем диапазоне.
+      .y((d) => yScale(d) + index * yOffset) // index - номер графика (глобальный сдвиг вниз).
+      .curve(d3.curveLinear)(data.slice(start, end)); // слайс данных со start по end.
+
+  
+  charts.join(
+    (enter) =>
+      enter
+        .append("path")
+        .attr("class", "line")
+        .attr("fill", "none")
+        .attr("stroke", "blue")
+        .attr("stroke-width", 1.2)
+        .attr("d", (d, i) => chartGenerator(d, i)),
+    (update) =>
+      update
+      .attr("d", (d, i) => chartGenerator(d, i)),
+    (exit) => exit.remove()
+  );
+
+  //requestAnimationFrame(() => {
+  // const start = Math.floor(xScale.domain()[0]);
+  // const end = Math.ceil(xScale.domain()[1]);
+
+  // xAxis.call(d3.axisBottom(xScale));
+  // svg.selectAll(".line").each(function (d, i) {
+  //   const visibleData = dataGroup[i].slice(start, end);
+
+  //   d3.select(this)
+  //     .datum(visibleData)
+  //     .attr(
+  //       "d",
+  //       d3
+  //         .line()
+  //         .x((d, i) => xScale(start + i))
+  //         .y((d) => yScale(d) + i * options.gridHeight * options.cellSize)
+  //         .curve(d3.curveLinear)
   //     );
   // });
 
-  //requestAnimationFrame(() => {
-    const start = Math.floor(xScale.domain()[0]);
-    const end = Math.ceil(xScale.domain()[1]);
-
-    xAxis.call(d3.axisBottom(xScale));
-    svg.selectAll(".line").each(function (d, i) {
-      
-
-      const visibleData = dataGroup[i].slice(start, end);
-
-      d3.select(this)
-        .datum(visibleData)
-        .attr("d", d3.line()
-          .x((d, i) => xScale(start + i))
-          .y((d) => yScale(d) + i * options.gridHeight * options.cellSize)
-          .curve(d3.curveLinear));
-    });
-
-    svg
-      .selectAll(".grid-lines .line-vertical")
-      .attr("x1", (d, i) =>
-        xScale((i * options.visibleLength) / options.gridWidth)
-      )
-      .attr("x2", (d, i) =>
-        xScale((i * options.visibleLength) / options.gridWidth)
-      );
-
-    // svg.selectAll(".grid-lines .line-vertical").each(function(d, i){
-    //     const line = d3.select(this);
-    //     const xPos = xScale(i);
-
-    //     if (xPos >= start && xPos <= end) {
-    //       line.attr("x1", (d, i) =>
-    //         xScale((i * options.visibleLength) / options.gridWidth))
-    //       .attr("x2", (d, i) =>
-    //         xScale((i * options.visibleLength) / options.gridWidth));
-    //     }
-    //     else {
-    //       line.remove();
-    //     }
-    // });
-      
+  // svg
+  //   .selectAll(".grid-lines .line-vertical")
+  //   .attr("x1", (d, i) =>
+  //     xScale((i * options.visibleLength) / options.gridWidth)
+  //   )
+  //   .attr("x2", (d, i) =>
+  //     xScale((i * options.visibleLength) / options.gridWidth)
+  //   );
   //});
 }
-
 
 // Function to update chart on brush event
 function updateBrushEvent(
@@ -684,66 +301,58 @@ function updateBrushEvent(
   }
 
   updateChart(svg, xScale, xAxis, yScale, dataGroup, options);
-  // xAxis.transition().duration(1000).call(d3.axisBottom(xScale));
-  // svg
-  //   .selectAll(".line")
-  //   .transition()
-  //   .duration(1000)
-  //   .attr("d", (d, i) => {
-  //     const yOffset = i * options.gridHeight * options.cellSize;
-  //     return d3.line()
-  //       .x((d, i) => xScale(i))
-  //       .y((d) => yScale(d) + yOffset)
-  //       .curve(d3.curveLinear)(d);
-  // });
-  // svg
-  //   .selectAll(".grid-lines .line-vertical")
-  //   .transition()
-  //   .duration(1000)
-  //   .attr("x1", (d, i) => xScale((i * options.visibleLength) / options.gridWidth))
-  //   .attr("x2", (d, i) => xScale((i * options.visibleLength) / options.gridWidth));
+  updateGrid(svg, xScale, dataGroup, options);
 }
 
-function handleScroll(event, svg, xScale, xAxis, yScale, dataGroup, options) {
+function handleScroll(
+  event,
+  svg,
+  xScale,
+  xAxis,
+  yScale,
+  chartState,
+  dataGroup,
+  options
+) {
   if (!event.altKey) return;
   event.preventDefault();
 
-  const currentDomain = xScale.domain();
-  const domainWidth = currentDomain[1] - currentDomain[0];
+  if (chartState.throttleTimeout) return;
 
-  let newDomain = [
-    currentDomain[0] + event.deltaY,
-    currentDomain[1] + event.deltaY,
-  ];
+  chartState.throttleTimeout = setTimeout(() => {
+    const currentDomain = xScale.domain();
+    const domainWidth = currentDomain[1] - currentDomain[0];
 
-  if (newDomain[0] < 0) {
-    newDomain = [0, domainWidth];
-  }
-  if (newDomain[1] > dataGroup[0].length) {
-    newDomain = [dataGroup[0].length - domainWidth, dataGroup[0].length];
-  }
+    let newDomain = [
+      currentDomain[0] + event.deltaY,
+      currentDomain[1] + event.deltaY,
+    ];
 
-  xScale.domain(newDomain);
+    if (newDomain[0] < 0) {
+      newDomain = [0, domainWidth];
+    }
+    if (newDomain[1] > dataGroup[0].length) {
+      newDomain = [dataGroup[0].length - domainWidth, dataGroup[0].length];
+    }
 
-  updateChart(svg, xScale, xAxis, yScale, dataGroup, options);
+    xScale.domain(newDomain);
 
-  // xAxis.transition().call(d3.axisBottom(xScale));
-  // svg
-  //   .selectAll(".line")
-  //   .attr("d", (d, i) => {
-  //     const yOffset = i * options.gridHeight * options.cellSize;
-  //     return d3.line()
-  //       .x((d, i) => xScale(i))
-  //       .y((d) => yScale(d) + yOffset)
-  //       .curve(d3.curveLinear)(d);
-  // });
-  // svg
-  //   .selectAll(".grid-lines .line-vertical")
-  //   .attr("x1", (d, i) => xScale((i * options.visibleLength) / options.gridWidth))
-  //   .attr("x2", (d, i) => xScale((i * options.visibleLength) / options.gridWidth));
+    updateChart(svg, xScale, xAxis, yScale, dataGroup, options);
+    updateGrid(svg, xScale, dataGroup, options);
+
+    chartState.throttleTimeout = null;
+  }, 20);
 }
 
-function handleDoubleClick(svg, xScale, xAxis, yScale, chartState, dataGroup, options) {
+function handleDoubleClick(
+  svg,
+  xScale,
+  xAxis,
+  yScale,
+  chartState,
+  dataGroup,
+  options
+) {
   if (chartState.savedLastFullDomain) {
     xScale.domain(chartState.savedLastFullDomain);
     chartState.savedLastFullDomain = null;
@@ -752,24 +361,7 @@ function handleDoubleClick(svg, xScale, xAxis, yScale, chartState, dataGroup, op
   }
 
   updateChart(svg, xScale, xAxis, yScale, dataGroup, options);
-  // xAxis.transition().duration(1000).call(d3.axisBottom(xScale));
-  // svg
-  //   .selectAll(".line")
-  //   .transition()
-  //   .duration(1000)
-  //   .attr("d", (d, i) => {
-  //     const yOffset = i * options.gridHeight * options.cellSize;
-  //     return d3.line()
-  //       .x((d, i) => xScale(i))
-  //       .y((d) => yScale(d) + yOffset)
-  //       .curve(d3.curveLinear)(d);
-  // });
-  // svg
-  //   .selectAll(".grid-lines .line-vertical")
-  //   .transition()
-  //   .duration(1000)
-  //   .attr("x1", (d, i) => xScale((i * options.visibleLength) / options.gridWidth))
-  //   .attr("x2", (d, i) => xScale((i * options.visibleLength) / options.gridWidth));
+  updateGrid(svg, xScale, dataGroup, options);
 }
 
 document.addEventListener("DOMContentLoaded", () => {
