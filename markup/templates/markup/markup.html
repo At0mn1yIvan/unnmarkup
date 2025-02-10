@@ -12,45 +12,32 @@
 {% block content %}
 {% load markup_filters %}
 
-{% comment %} <div id="grid-container"></div> {% endcomment %}
 
-<div id="charts-container" style="display: flex; gap: 0;">
-    <!-- Левая колонка -->
-    <div id="left-column" style="display: flex; flex-direction: column; gap: 0;"></div>
-    <!-- Правая колонка -->
-    <div id="right-column" style="display: flex; flex-direction: column; gap: 0;"></div>
-</div>
-{% comment %}
-<table>
-    {% for i in 6|create_range %}
-    <tr>
+<div style="display: flex; gap: 20px;">
+
+    <div id="charts-container" style="display: flex; gap: 0;">
         <!-- Левая колонка -->
-        <td>
-            <div class="chart-container" id="chart-container_{{ names|return_item:i }}"></div>
-        </td>
+        <div id="left-column" style="display: flex; flex-direction: column; gap: 0;"></div>
         <!-- Правая колонка -->
-        <td>
-            {% with j=i|add:"6" %}
-            <div class="chart-container" id="chart-container_{{ names|return_item:j }}"></div>
-            {% endwith %}
-        </td>
-    </tr>
-    {% endfor %}
-</table> {% endcomment %}
+        <div id="right-column" style="display: flex; flex-direction: column; gap: 0;"></div>
+    </div>
 
+    <div id="tabs-container" style="width: 300px; border: 1px solid #ccc; border-radius: 5px;">
+        <nav style="display: flex; border-bottom: 1px solid #ccc;">
+            <button class="tab-button active" data-tab="markup">Разметка</button>
+            <button class="tab-button" data-tab="diagnosis">Диагнозы</button>
+        </nav>
+        <div class="tab-content" id="markup-content">
+            <label><input type="radio" name="markup-option" value="QRS"> QRS</label><br>
+            <label><input type="radio" name="markup-option" value="P"> P</label><br>
+            <label><input type="radio" name="markup-option" value="T"> T</label><br>
+            <label><input type="radio" name="markup-option" value="Noise"> Noise</label>
+        </div>
+        <div class="tab-content" id="diagnosis-content" style="display: none;">
+            <p>Сюда можно добавить содержимое для диагнозов.</p>
+        </div>
+    </div>
 
-
-{% comment %} старое: {% endcomment %}
-<!--{% for i in 6|create_range %}-->
-<!--&lt;!&ndash; Левая колонка &ndash;&gt;-->
-
-<!--<div id="chart-container_{{ names|return_item:i }}"></div>-->
-
-<!--&lt;!&ndash; Правая колонка &ndash;&gt;-->
-<!--{% with j=i|add:"6" %}-->
-
-<!--<div id="chart-container_{{ names|return_item:j }}"></div>-->
-<!--{% endwith %}-->
-<!--{% endfor %}-->
+</div>
 
 {% endblock %}

@@ -420,3 +420,21 @@ ul.lang-list li a:hover {color: #fdc073;}
 	flex-direction: column;
 	gap: 0; /* Убираем зазор между графиками */
 }
+
+.tab-button {
+    padding: 10px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    flex: 1;
+    text-align: center;
+}
+
+.tab-button.active {
+    font-weight: bold;
+    border-bottom: 2px solid blue;
+}
+
+.tab-content {
+    padding: 10px;
+}

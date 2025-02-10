@@ -1,4 +1,13 @@
-// КОД ПОСЛЕДНИЙ НЕ ТРОГАТЬ!
+let currentAnnotationType = "QRS"; // Значение по умолчанию
+const annotationColors = {
+  QRS: "red",
+  P: "yellow",
+  T: "green",
+  Noise: "gray"
+};
+let annotations = [];
+
+
 function idled(chartState) {
   chartState.idleTimeout = null;
 }
@@ -18,7 +27,6 @@ function drawGrid(chartGroup, cellSize, gridWidth, gridHeight) {
       .attr("stroke", "gray")
       .attr("stroke-width", x % 5 === 0 ? 1 : 0.5);
   }
-
   for (let y = 0; y <= gridHeight; y++) {
     gridLines
       .append("line")
@@ -32,10 +40,9 @@ function drawGrid(chartGroup, cellSize, gridWidth, gridHeight) {
   }
 }
 
-function updateGrid(svg, xScale, dataGroup, options) {
+function updateGrid(svg, xScale, options) {
   // Постоянные константы вынести уровнем выше. !!!
   const gridWidthWhole = 250;
-  const totalHeight = options.gridHeight * dataGroup.length;
   const step = options.visibleLength / options.gridWidth;
 
   // Начало и конец видимых данных.
@@ -69,7 +76,7 @@ function updateGrid(svg, xScale, dataGroup, options) {
         .attr("x1", (d) => xScale(d * step))
         .attr("y1", 0)
         .attr("x2", (d) => xScale(d * step))
-        .attr("y2", options.cellSize * totalHeight)
+        .attr("y2", svg.attr("height"))
         .attr("stroke", "gray")
         .attr("stroke-width", (i) => (i % 5 === 0 ? 1 : 0.5)),
     (update) =>
@@ -83,7 +90,6 @@ function updateGrid(svg, xScale, dataGroup, options) {
 function createEcgChartGroup(containerId, dataGroup, options, chartNames) {
   const { cellSize, visibleLength, gridWidth, gridHeight, maxMvValue } =
     options;
-
   const chartState = {
     idleTimeout: null,
     throttleTimeout: null,
@@ -130,20 +136,10 @@ function createEcgChartGroup(containerId, dataGroup, options, chartNames) {
       [0, 0],
       [cellSize * gridWidth, cellSize * totalHeight],
     ])
-
     .on("end", (event) =>
-      updateBrushEvent(
-        event,
-        svg,
-        xScale,
-        xAxis,
-        yScale,
-        chartState,
-        dataGroup,
-        options
-      )
+      updateBrushEvent(event, svg, xScale)
     );
-
+  
   const chartGroup = svg
     .append("g")
     .attr("clip-path", `url(#clip-${containerId})`);
@@ -171,14 +167,16 @@ function createEcgChartGroup(containerId, dataGroup, options, chartNames) {
     chartGroup
       .append("text")
       .attr("x", 10)
-      .attr("y", yOffset + 20)
-      .attr("font-size", "16px")
+      .attr("y", yOffset + 30)
+      .attr("font-size", "20px")
       .attr("font-family", "Yandex Sans Display Light")
       .attr("fill", "black")
       .text(chartNames[index]);
   });
 
   chartGroup.append("g").attr("class", "brush").call(brush);
+  svg.append("g").attr("class", "brush-annotations");
+
 
   svg.on("wheel", (event) =>
     handleScroll(
@@ -192,7 +190,6 @@ function createEcgChartGroup(containerId, dataGroup, options, chartNames) {
       options
     )
   );
-
   svg.on("dblclick", () =>
     handleDoubleClick(
       svg,
@@ -215,17 +212,17 @@ function updateChart(svg, xScale, xAxis, yScale, dataGroup, options) {
 
   // xAxis.call(d3.axisBottom(xScale));
 
-  const charts = 
-    svg.selectAll(".line") // Выбираем все линии графиков.
-      .data(dataGroup); // Привязывает массив dataGroup, где каждый элемент массива соответствует одному графику (линии).
+  const charts = svg
+    .selectAll(".line") // Выбираем все линии графиков.
+    .data(dataGroup); // Привязывает массив dataGroup, где каждый элемент массива соответствует одному графику (линии).
 
   const chartGenerator = (data, index) =>
-    d3.line()
+    d3
+      .line()
       .x((d, i) => xScale(start + i)) // i - локальный индекс точки в текущем диапазоне.
       .y((d) => yScale(d) + index * yOffset) // index - номер графика (глобальный сдвиг вниз).
       .curve(d3.curveLinear)(data.slice(start, end)); // слайс данных со start по end.
 
-  
   charts.join(
     (enter) =>
       enter
@@ -235,73 +232,67 @@ function updateChart(svg, xScale, xAxis, yScale, dataGroup, options) {
         .attr("stroke", "blue")
         .attr("stroke-width", 1.2)
         .attr("d", (d, i) => chartGenerator(d, i)),
-    (update) =>
-      update
-      .attr("d", (d, i) => chartGenerator(d, i)),
+    (update) => update.attr("d", (d, i) => chartGenerator(d, i)),
     (exit) => exit.remove()
   );
-
-  //requestAnimationFrame(() => {
-  // const start = Math.floor(xScale.domain()[0]);
-  // const end = Math.ceil(xScale.domain()[1]);
-
-  // xAxis.call(d3.axisBottom(xScale));
-  // svg.selectAll(".line").each(function (d, i) {
-  //   const visibleData = dataGroup[i].slice(start, end);
-
-  //   d3.select(this)
-  //     .datum(visibleData)
-  //     .attr(
-  //       "d",
-  //       d3
-  //         .line()
-  //         .x((d, i) => xScale(start + i))
-  //         .y((d) => yScale(d) + i * options.gridHeight * options.cellSize)
-  //         .curve(d3.curveLinear)
-  //     );
-  // });
-
-  // svg
-  //   .selectAll(".grid-lines .line-vertical")
-  //   .attr("x1", (d, i) =>
-  //     xScale((i * options.visibleLength) / options.gridWidth)
-  //   )
-  //   .attr("x2", (d, i) =>
-  //     xScale((i * options.visibleLength) / options.gridWidth)
-  //   );
-  //});
 }
 
-// Function to update chart on brush event
-function updateBrushEvent(
-  event,
-  svg,
-  xScale,
-  xAxis,
-  yScale,
-  chartState,
-  dataGroup,
-  options
-) {
+function updateAnnotations(svg, xScale) {
+  const brushGroup = svg.select(".brush-annotations");
+
+  const filteredAnnotations = annotations.filter(d => d.svg === svg);
+
+  const annotationRects = brushGroup.selectAll("rect")
+    .data(filteredAnnotations, d => `${d.x0}-${d.x1}-${d.type}`);
+
+  annotationRects.enter()
+    .append("rect")
+    .attr("y", 0)
+    .attr("height", svg.attr("height"))
+    .attr("fill", d => annotationColors[d.type])
+    .attr("opacity", 0.4)
+    .merge(annotationRects)
+    .attr("x", d => xScale(d.x0))
+    .attr("width", d => xScale(d.x1) - xScale(d.x0));
+
+  annotationRects.exit().remove();
+}
+
+function updateBrushEvent(event, svg, xScale) {
+  // const extent = event.selection;
+
+  // if (!extent) {
+  //   if (!chartState.idleTimeout)
+  //     return (chartState.idleTimeout = setTimeout(
+  //       () => idled(chartState),
+  //       350
+  //     ));
+  //   xScale.domain(chartState.savedLastFullDomain || [0, options.visibleLength]);
+  // } else {
+  //   if (!chartState.savedLastFullDomain) {
+  //     chartState.savedLastFullDomain = xScale.domain();
+  //   }
+  //   xScale.domain([xScale.invert(extent[0]), xScale.invert(extent[1])]);
+  //   svg.select(".brush").call(d3.brushX().move, null);
+  // }
+
+  // updateChart(svg, xScale, xAxis, yScale, dataGroup, options);
+  // updateGrid(svg, xScale, dataGroup, options);
+  
   const extent = event.selection;
+  if (!extent) return;
 
-  if (!extent) {
-    if (!chartState.idleTimeout)
-      return (chartState.idleTimeout = setTimeout(
-        () => idled(chartState),
-        350
-      ));
-    xScale.domain(chartState.savedLastFullDomain || [0, options.visibleLength]);
-  } else {
-    if (!chartState.savedLastFullDomain) {
-      chartState.savedLastFullDomain = xScale.domain();
-    }
-    xScale.domain([xScale.invert(extent[0]), xScale.invert(extent[1])]);
-    svg.select(".brush").call(d3.brushX().move, null);
-  }
+  const [x0, x1] = extent.map(xScale.invert);
+  svg.select(".brush").call(d3.brushX().move, null);
 
-  updateChart(svg, xScale, xAxis, yScale, dataGroup, options);
-  updateGrid(svg, xScale, dataGroup, options);
+  annotations.push({
+    x0: x0,
+    x1: x1,
+    type: currentAnnotationType,
+    svg: svg
+  });
+
+  updateAnnotations(svg, xScale);
 }
 
 function handleScroll(
@@ -338,7 +329,8 @@ function handleScroll(
     xScale.domain(newDomain);
 
     updateChart(svg, xScale, xAxis, yScale, dataGroup, options);
-    updateGrid(svg, xScale, dataGroup, options);
+    updateGrid(svg, xScale, options);
+    updateAnnotations(svg, xScale);
 
     chartState.throttleTimeout = null;
   }, 20);
@@ -361,14 +353,15 @@ function handleDoubleClick(
   }
 
   updateChart(svg, xScale, xAxis, yScale, dataGroup, options);
-  updateGrid(svg, xScale, dataGroup, options);
+  updateGrid(svg, xScale, options);
+  updateAnnotations(svg, xScale);
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   const visibleLength = 1500; // Количество отображаемых точек
   const cellSize = 7; // Размер клетки в пикселях
   const gridWidth = 25 * (visibleLength / 500); // Ширина сетки в клетках
-  const maxMvValue = 2; // Максимальное значение в мВ
+  const maxMvValue = 1.5; // Максимальное значение в мВ
   const gridHeight = 20 * maxMvValue; // Высота сетки в клетках
 
   const chartOptions = {
@@ -391,4 +384,24 @@ document.addEventListener("DOMContentLoaded", () => {
     chartOptions,
     window.ecgNames.slice(6, 12)
   );
+
+  const buttons = document.querySelectorAll(".tab-button");
+  const contents = document.querySelectorAll(".tab-content");
+
+  buttons.forEach(button => {
+      button.addEventListener("click", () => {
+          buttons.forEach(btn => btn.classList.remove("active"));
+          button.classList.add("active");
+
+          contents.forEach(content => content.style.display = "none");
+          document.getElementById(button.dataset.tab + "-content").style.display = "block";
+      });
+  });
+
+  document.querySelectorAll('input[name="markup-option"]').forEach((radio) => {
+    radio.addEventListener("change", function () {
+      currentAnnotationType = this.value;
+    });
+  });
+
 });
