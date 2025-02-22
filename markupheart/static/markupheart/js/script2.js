@@ -3,14 +3,9 @@ const annotationColors = {
   QRS: "red",
   P: "yellow",
   T: "green",
-  Noise: "gray"
+  Noise: "gray",
 };
 let annotations = [];
-
-
-function idled(chartState) {
-  chartState.idleTimeout = null;
-}
 
 function drawGrid(chartGroup, cellSize, gridWidth, gridHeight) {
   const gridLines = chartGroup.append("g").attr("class", "grid-lines");
@@ -91,7 +86,6 @@ function createEcgChartGroup(containerId, dataGroup, options, chartNames) {
   const { cellSize, visibleLength, gridWidth, gridHeight, maxMvValue } =
     options;
   const chartState = {
-    idleTimeout: null,
     throttleTimeout: null,
     savedLastFullDomain: null,
   };
@@ -136,10 +130,8 @@ function createEcgChartGroup(containerId, dataGroup, options, chartNames) {
       [0, 0],
       [cellSize * gridWidth, cellSize * totalHeight],
     ])
-    .on("end", (event) =>
-      updateBrushEvent(event, svg, xScale)
-    );
-  
+    .on("end", (event) => updateBrushEvent(event, svg, xScale));
+
   const chartGroup = svg
     .append("g")
     .attr("clip-path", `url(#clip-${containerId})`);
@@ -177,13 +169,11 @@ function createEcgChartGroup(containerId, dataGroup, options, chartNames) {
   chartGroup.append("g").attr("class", "brush").call(brush);
   svg.append("g").attr("class", "brush-annotations");
 
-
   svg.on("wheel", (event) =>
     handleScroll(
       event,
       svg,
       xScale,
-      xAxis,
       yScale,
       chartState,
       dataGroup,
@@ -194,7 +184,6 @@ function createEcgChartGroup(containerId, dataGroup, options, chartNames) {
     handleDoubleClick(
       svg,
       xScale,
-      xAxis,
       yScale,
       chartState,
       dataGroup,
@@ -203,7 +192,7 @@ function createEcgChartGroup(containerId, dataGroup, options, chartNames) {
   );
 }
 
-function updateChart(svg, xScale, xAxis, yScale, dataGroup, options) {
+function updateChart(svg, xScale, yScale, dataGroup, options) {
   const yOffset = options.gridHeight * options.cellSize; // Сдвиг графиков вниз по Y, чтобы отобразить все 6 графиков на одном SVG.
 
   // Начало и конец видимых данных.
@@ -240,45 +229,25 @@ function updateChart(svg, xScale, xAxis, yScale, dataGroup, options) {
 function updateAnnotations(svg, xScale) {
   const brushGroup = svg.select(".brush-annotations");
 
-  const filteredAnnotations = annotations.filter(d => d.svg === svg);
+  const annotationRects = brushGroup
+    .selectAll("rect")
+    .data(annotations, (d) => `${d.x0}-${d.x1}-${d.type}`);
 
-  const annotationRects = brushGroup.selectAll("rect")
-    .data(filteredAnnotations, d => `${d.x0}-${d.x1}-${d.type}`);
-
-  annotationRects.enter()
+  annotationRects
+    .enter()
     .append("rect")
     .attr("y", 0)
     .attr("height", svg.attr("height"))
-    .attr("fill", d => annotationColors[d.type])
+    .attr("fill", (d) => annotationColors[d.type])
     .attr("opacity", 0.4)
     .merge(annotationRects)
-    .attr("x", d => xScale(d.x0))
-    .attr("width", d => xScale(d.x1) - xScale(d.x0));
+    .attr("x", (d) => xScale(d.x0))
+    .attr("width", (d) => xScale(d.x1) - xScale(d.x0));
 
   annotationRects.exit().remove();
 }
 
 function updateBrushEvent(event, svg, xScale) {
-  // const extent = event.selection;
-
-  // if (!extent) {
-  //   if (!chartState.idleTimeout)
-  //     return (chartState.idleTimeout = setTimeout(
-  //       () => idled(chartState),
-  //       350
-  //     ));
-  //   xScale.domain(chartState.savedLastFullDomain || [0, options.visibleLength]);
-  // } else {
-  //   if (!chartState.savedLastFullDomain) {
-  //     chartState.savedLastFullDomain = xScale.domain();
-  //   }
-  //   xScale.domain([xScale.invert(extent[0]), xScale.invert(extent[1])]);
-  //   svg.select(".brush").call(d3.brushX().move, null);
-  // }
-
-  // updateChart(svg, xScale, xAxis, yScale, dataGroup, options);
-  // updateGrid(svg, xScale, dataGroup, options);
-  
   const extent = event.selection;
   if (!extent) return;
 
@@ -289,7 +258,6 @@ function updateBrushEvent(event, svg, xScale) {
     x0: x0,
     x1: x1,
     type: currentAnnotationType,
-    svg: svg
   });
 
   updateAnnotations(svg, xScale);
@@ -299,7 +267,6 @@ function handleScroll(
   event,
   svg,
   xScale,
-  xAxis,
   yScale,
   chartState,
   dataGroup,
@@ -328,7 +295,7 @@ function handleScroll(
 
     xScale.domain(newDomain);
 
-    updateChart(svg, xScale, xAxis, yScale, dataGroup, options);
+    updateChart(svg, xScale, yScale, dataGroup, options);
     updateGrid(svg, xScale, options);
     updateAnnotations(svg, xScale);
 
@@ -339,7 +306,6 @@ function handleScroll(
 function handleDoubleClick(
   svg,
   xScale,
-  xAxis,
   yScale,
   chartState,
   dataGroup,
@@ -352,7 +318,7 @@ function handleDoubleClick(
     xScale.domain([0, options.visibleLength]);
   }
 
-  updateChart(svg, xScale, xAxis, yScale, dataGroup, options);
+  updateChart(svg, xScale, yScale, dataGroup, options);
   updateGrid(svg, xScale, options);
   updateAnnotations(svg, xScale);
 }
@@ -388,14 +354,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".tab-button");
   const contents = document.querySelectorAll(".tab-content");
 
-  buttons.forEach(button => {
-      button.addEventListener("click", () => {
-          buttons.forEach(btn => btn.classList.remove("active"));
-          button.classList.add("active");
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => {
+      buttons.forEach((btn) => btn.classList.remove("active"));
+      button.classList.add("active");
 
-          contents.forEach(content => content.style.display = "none");
-          document.getElementById(button.dataset.tab + "-content").style.display = "block";
-      });
+      contents.forEach((content) => (content.style.display = "none"));
+      document.getElementById(button.dataset.tab + "-content").style.display =
+        "block";
+    });
   });
 
   document.querySelectorAll('input[name="markup-option"]').forEach((radio) => {
@@ -403,5 +370,4 @@ document.addEventListener("DOMContentLoaded", () => {
       currentAnnotationType = this.value;
     });
   });
-
 });

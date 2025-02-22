@@ -2,7 +2,7 @@
 {% load static %}
 {% block script %}
 <script src="https://d3js.org/d3.v7.min.js"></script>
-<script src="{% static 'markupheart/js/script2.js' %}"></script>
+<script src="{% static 'markupheart/js/script5.js' %}"></script>
 <script>
     window.ecgData = {{ data | safe }};
     window.ecgNames = {{ names | safe }};
@@ -28,7 +28,7 @@
             <button class="tab-button" data-tab="diagnosis">Диагнозы</button>
         </nav>
         <div class="tab-content" id="markup-content">
-            <label><input type="radio" name="markup-option" value="QRS"> QRS</label><br>
+            <label><input type="radio" name="markup-option" value="QRS" checked> QRS</label><br>
             <label><input type="radio" name="markup-option" value="P"> P</label><br>
             <label><input type="radio" name="markup-option" value="T"> T</label><br>
             <label><input type="radio" name="markup-option" value="Noise"> Noise</label>
