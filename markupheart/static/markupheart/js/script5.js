@@ -330,6 +330,53 @@ class EcgGraphMarkupManager {
     this.triggerMarkChange();
   }
 
+  onResizeStart(event, markup) {
+    event.preventDefault();
+
+    const mouseX = d3.pointer(event, this.graphGroup.svg.node())[0];
+    const x0 = this.graphGroup.xScale(markup.x0);
+    const x1 = this.graphGroup.xScale(markup.x1);
+    let resizeType = null;
+
+    // Определяем, к какому краю ближе курсор
+    if (Math.abs(mouseX - x0) < 20) {
+      resizeType = "left"; // Левый край
+    } else if (Math.abs(mouseX - x1) < 20) {
+      resizeType = "right"; // Правый край
+    } else {
+      return;
+    }
+  
+    // Начинаем отслеживание движения мыши
+    const onMouseMove = (e) => {
+      const newX = this.graphGroup.xScale.invert(d3.pointer(e, this.graphGroup.svg.node())[0]);
+      if (resizeType === "left") {
+        markup.x0 = Math.min(newX, markup.x1 - 1); // Левый край двигаем, но не даем пересечь правый
+      } else if (resizeType === "right") {
+        markup.x1 = Math.max(newX, markup.x0 + 1); // Правый край двигаем, но не даем пересечь левый
+      }
+
+      this.drawMarkups();
+      this.triggerMarkChange();
+    };
+  
+    const onMouseUp = () => {
+      d3.select(window).on("mousemove", null).on("mouseup", null);
+    };
+  
+    d3.select(window).on("mousemove", onMouseMove).on("mouseup", onMouseUp);
+  }
+
+  removeMarkup(event, markup) {
+    // Удаление блока разметки при помощи ПКМ.
+    event.preventDefault();
+
+    EcgGraphMarkupManager.markups = EcgGraphMarkupManager.markups.filter((d) => d !== markup);
+
+    this.drawMarkups();
+    this.triggerMarkChange();
+  }
+
   drawMarkups() {
     const markupGroup = this.graphGroup.svg.select(".brush-markups");
 
@@ -346,7 +393,14 @@ class EcgGraphMarkupManager {
           .attr("fill", (d) => EcgGraphMarkupManager.colorMap[d.type])
           .attr("opacity", 0.4)
           .attr("x", (d) => this.graphGroup.xScale(d.x0))
-          .attr("width", (d) => this.graphGroup.xScale(d.x1) - this.graphGroup.xScale(d.x0)),
+          .attr("width", (d) => this.graphGroup.xScale(d.x1) - this.graphGroup.xScale(d.x0))
+          .on("contextmenu", (event, d) => this.removeMarkup(event, d))
+          .call((rects) => {
+            rects.each((d, i, nodes) => {
+              const rect = d3.select(nodes[i]);
+              rect.on("mousedown", (event) => this.onResizeStart(event, d));
+            });
+          }),
       (update) =>
         update
           .attr("x", (d) => this.graphGroup.xScale(d.x0))
