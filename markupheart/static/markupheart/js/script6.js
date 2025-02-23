@@ -265,15 +265,16 @@ class EcgGraphSynchronizer {
   }
 
   #handleScroll(event, graphGroup) {
-    const scrollStep = Math.abs(event.deltaY);
-    let [domainStart] = graphGroup.xScale.domain();
+    const zoomCompensationFactor = 0.7;
+    const scrollStep = Math.abs(event.deltaY) * zoomCompensationFactor;
+    let [domainStart, domainEnd] = graphGroup.xScale.domain();
 
     const maxDomainStart = graphGroup.dataGroup[0].length - graphGroup.opts.visibleLength;
     domainStart = event.deltaY > 0
       ? Math.min(domainStart + scrollStep, maxDomainStart)
       : Math.max(domainStart - scrollStep, 0);
 
-    const domainEnd = Math.min(
+    domainEnd = Math.min(
       domainStart + graphGroup.opts.visibleLength,
       graphGroup.dataGroup[0].length
     );
@@ -300,7 +301,7 @@ class EcgGraphSynchronizer {
 
     const visibleIndices = d3
       .range(0, totalVerticalLines)
-      .filter((i) => i * step >= domainStart && i * step <= domainEnd);
+      .filter((i) => (i * step) >= domainStart && (i * step) <= domainEnd);
 
     graphGroup.graphGroup
       .select(".grid-lines")
@@ -482,15 +483,15 @@ const chartOptions = {
   cellSize: 7,
   visibleLength: 1500,
   maxMvValue: 1.5,
-  hertz: 500, // Добавляем частоту дискретизации
-  cellsPerSecond: 25, // Количество клеток в секунду
+  hertz: 500, // герцовка ЭКГ
+  cellsPerSecond: 25, // мм (клеток)/сек
   cellsPerMv: 20,
   get gridWidth() {
     return Math.ceil((this.visibleLength / this.hertz) * this.cellsPerSecond);
   },
   get gridHeight() {
     return this.cellsPerMv * this.maxMvValue;
-  }, 
+  },
   get totalVerticalLines() {
       return Math.ceil((window.ecgData[0].length / this.hertz) * this.cellsPerSecond);
   }
