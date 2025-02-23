@@ -346,10 +346,17 @@ class EcgGraphMarkupManager {
     } else {
       return;
     }
-  
+
+    Number.prototype.clamp = function (min, max) {
+      return Math.min(Math.max(this, min), max);
+    };
+
     // Начинаем отслеживание движения мыши
     const onMouseMove = (e) => {
-      const newX = this.graphGroup.xScale.invert(d3.pointer(e, this.graphGroup.svg.node())[0]);
+      const newX = this.graphGroup.xScale
+        .invert(d3.pointer(e, this.graphGroup.svg.node())[0])
+        .clamp(0, this.graphGroup.dataGroup[0].length);
+
       if (resizeType === "left") {
         markup.x0 = Math.min(newX, markup.x1 - 1); // Левый край двигаем, но не даем пересечь правый
       } else if (resizeType === "right") {
@@ -359,11 +366,11 @@ class EcgGraphMarkupManager {
       this.drawMarkups();
       this.triggerMarkChange();
     };
-  
+
     const onMouseUp = () => {
       d3.select(window).on("mousemove", null).on("mouseup", null);
     };
-  
+
     d3.select(window).on("mousemove", onMouseMove).on("mouseup", onMouseUp);
   }
 
@@ -371,7 +378,9 @@ class EcgGraphMarkupManager {
     // Удаление блока разметки при помощи ПКМ.
     event.preventDefault();
 
-    EcgGraphMarkupManager.markups = EcgGraphMarkupManager.markups.filter((d) => d !== markup);
+    EcgGraphMarkupManager.markups = EcgGraphMarkupManager.markups.filter(
+      (d) => d !== markup
+    );
 
     this.drawMarkups();
     this.triggerMarkChange();
@@ -393,7 +402,10 @@ class EcgGraphMarkupManager {
           .attr("fill", (d) => EcgGraphMarkupManager.colorMap[d.type])
           .attr("opacity", 0.4)
           .attr("x", (d) => this.graphGroup.xScale(d.x0))
-          .attr("width", (d) => this.graphGroup.xScale(d.x1) - this.graphGroup.xScale(d.x0))
+          .attr(
+            "width",
+            (d) => this.graphGroup.xScale(d.x1) - this.graphGroup.xScale(d.x0)
+          )
           .on("contextmenu", (event, d) => this.removeMarkup(event, d))
           .call((rects) => {
             rects.each((d, i, nodes) => {
@@ -404,25 +416,12 @@ class EcgGraphMarkupManager {
       (update) =>
         update
           .attr("x", (d) => this.graphGroup.xScale(d.x0))
-          .attr("width", (d) => this.graphGroup.xScale(d.x1) - this.graphGroup.xScale(d.x0)),
+          .attr(
+            "width",
+            (d) => this.graphGroup.xScale(d.x1) - this.graphGroup.xScale(d.x0)
+          ),
       (exit) => exit.remove()
-      );
-    
-    // markupRects
-    //   .enter()
-    //   .append("rect")
-    //   .attr("y", 0)
-    //   .attr("height", this.graphGroup.svg.attr("height"))
-    //   .attr("fill", (d) => EcgGraphMarkupManager.colorMap[d.type])
-    //   .attr("opacity", 0.4)
-    //   .merge(markupRects)
-    //   .attr("x", (d) => this.graphGroup.xScale(d.x0))
-    //   .attr(
-    //     "width",
-    //     (d) => this.graphGroup.xScale(d.x1) - this.graphGroup.xScale(d.x0)
-    //   );
-
-    // markupRects.exit().remove();
+    );
   }
 
   setupRadioButtons() {
