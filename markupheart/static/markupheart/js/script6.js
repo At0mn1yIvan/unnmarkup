@@ -376,18 +376,57 @@ class EcgGraphMarkupManager {
     };
   }
 
+  // #hasForbiddenOverlap(newMarkup) {
+  //   EcgGraphMarkupManager.markups.forEach((markup) => {
+  //     const isSameType = newMarkup.type === markup.type;
+  //     const isFullOverlap = 
+  //       (newMarkup.x0 <= markup.x0 && newMarkup.x1 >= markup.x1) || 
+  //       (markup.x0 <= newMarkup.x0 && newMarkup.x1 >= markup.x1);
+
+  //     if (isSameType && !isFullOverlap) {
+  //       const isAnyOverlap =
+  //       (newMarkup.x0 <= markup.x0 && newMarkup.x1 >= markup.x0 && newMarkup.x1 <= markup.x1) ||
+  //       (newMarkup.x0 >= markup.x0 && newMarkup.x0 <= markup.x1 && newMarkup.x1 >= markup.x1);
+
+  //       return isAnyOverlap;
+  //     }
+  //     else return isFullOverlap;
+  //   });
+  // }
+
+  #hasForbiddenOverlap(newMarkup) {
+    return EcgGraphMarkupManager.markups.some(existing => {
+      // 1. Проверка полного перекрытия (любые типы)
+      const isFullOverlap = 
+        (newMarkup.x0 <= existing.x0 && newMarkup.x1 >= existing.x1) ||
+        (existing.x0 <= newMarkup.x0 && existing.x1 >= newMarkup.x1);
+
+      // 2. Проверка пересечения для одинаковых типов
+      const isSameTypeOverlap = 
+        existing.type === newMarkup.type && 
+        newMarkup.x0 < existing.x1 && 
+        newMarkup.x1 > existing.x0;
+
+      return isFullOverlap || isSameTypeOverlap;
+    });
+  }
+
   #handleBrushEnd(event) {
     const selection = event.selection;
     if (!selection) return;
 
     const [x0, x1] = selection.map(this.#graphGroup.xScale.invert);
     this.#graphGroup.svg.select(".brush").call(d3.brushX().move, null);
-
-    EcgGraphMarkupManager.markups.push({
+    const newMarkup = {
       x0: x0,
       x1: x1,
       type: this.#activeMarkup,
-    });
+    };
+    if (!this.#hasForbiddenOverlap(newMarkup)) {
+      
+    }
+
+    EcgGraphMarkupManager.markups.push(newMarkup);
     this.#triggerMarkChange();
   }
 
