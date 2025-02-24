@@ -376,26 +376,9 @@ class EcgGraphMarkupManager {
     };
   }
 
-  // #hasForbiddenOverlap(newMarkup) {
-  //   EcgGraphMarkupManager.markups.forEach((markup) => {
-  //     const isSameType = newMarkup.type === markup.type;
-  //     const isFullOverlap = 
-  //       (newMarkup.x0 <= markup.x0 && newMarkup.x1 >= markup.x1) || 
-  //       (markup.x0 <= newMarkup.x0 && newMarkup.x1 >= markup.x1);
-
-  //     if (isSameType && !isFullOverlap) {
-  //       const isAnyOverlap =
-  //       (newMarkup.x0 <= markup.x0 && newMarkup.x1 >= markup.x0 && newMarkup.x1 <= markup.x1) ||
-  //       (newMarkup.x0 >= markup.x0 && newMarkup.x0 <= markup.x1 && newMarkup.x1 >= markup.x1);
-
-  //       return isAnyOverlap;
-  //     }
-  //     else return isFullOverlap;
-  //   });
-  // }
-
-  #hasForbiddenOverlap(newMarkup) {
+  #hasForbiddenOverlap(newMarkup, currentMarkup = null) {
     return EcgGraphMarkupManager.markups.some(existing => {
+      if (existing === currentMarkup) return false;
       // 1. Проверка полного перекрытия (любые типы)
       const isFullOverlap = 
         (newMarkup.x0 <= existing.x0 && newMarkup.x1 >= existing.x1) ||
@@ -422,9 +405,7 @@ class EcgGraphMarkupManager {
       x1: x1,
       type: this.#activeMarkup,
     };
-    if (!this.#hasForbiddenOverlap(newMarkup)) {
-      
-    }
+    if (this.#hasForbiddenOverlap(newMarkup)) return;
 
     EcgGraphMarkupManager.markups.push(newMarkup);
     this.#triggerMarkChange();
@@ -484,17 +465,18 @@ class EcgGraphMarkupManager {
     event.preventDefault();
     const mouseX = d3.pointer(event, this.#graphGroup.svg.node())[0];
     const xScale = this.#graphGroup.xScale;
-    const [x0Pos, x1Pos] = [xScale(markup.x0), xScale(markup.x1)];
+    const originalValues = {x0: markup.x0, x1: markup.x1, type: markup.type};
 
     const resizeType =
-      Math.abs(mouseX - x0Pos) < 20
+      Math.abs(mouseX - xScale(markup.x0)) < 20
         ? "left"
-        : Math.abs(mouseX - x1Pos) < 20
+        : Math.abs(mouseX - xScale(markup.x1)) < 20
         ? "right"
         : null;
     if (!resizeType) return;
 
     const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
+    let isValidResize = true;
 
     const onMouseMove = (e) => {
       const newX = clamp(
@@ -503,14 +485,31 @@ class EcgGraphMarkupManager {
         this.#graphGroup.dataGroup[0].length
       );
 
-      if (resizeType === "left") markup.x0 = Math.min(newX, markup.x1 - 1);
-      if (resizeType === "right") markup.x1 = Math.max(newX, markup.x0 + 1);
+      const newValues = {
+        x0: resizeType === "left" ? newX : markup.x0,
+        x1: resizeType === "right" ? newX : markup.x1,
+        type : markup.type
+      }
 
-      this.drawMarkups();
-      this.#triggerMarkChange();
+      isValidResize = !this.#hasForbiddenOverlap(
+        newValues,
+        markup
+      );
+
+      if (isValidResize) {
+        if (resizeType === "left") markup.x0 = Math.min(newX, markup.x1 - 1);
+        if (resizeType === "right") markup.x1 = Math.max(newX, markup.x0 + 1);
+        this.drawMarkups();
+        this.#triggerMarkChange();
+      }
     };
 
     const onMouseUp = () => {
+      if (!isValidResize) {
+        Object.assign(markup, originalValues); // Откат изменений
+        this.drawMarkups();
+        this.#triggerMarkChange();
+      }
       d3.select(window).on("mousemove", null).on("mouseup", null);
     };
 
