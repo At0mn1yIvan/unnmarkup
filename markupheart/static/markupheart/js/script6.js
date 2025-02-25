@@ -380,18 +380,45 @@ class EcgGraphMarkupManager {
     return EcgGraphMarkupManager.markups.some(existing => {
       if (existing === currentMarkup) return false;
       // 1. Проверка полного перекрытия (любые типы)
-      const isFullOverlap = 
+      const isFullOverlap =
         (newMarkup.x0 <= existing.x0 && newMarkup.x1 >= existing.x1) ||
         (existing.x0 <= newMarkup.x0 && existing.x1 >= newMarkup.x1);
 
       // 2. Проверка пересечения для одинаковых типов
-      const isSameTypeOverlap = 
-        existing.type === newMarkup.type && 
-        newMarkup.x0 < existing.x1 && 
+      const isSameTypeOverlap =
+        existing.type === newMarkup.type &&
+        newMarkup.x0 < existing.x1 &&
         newMarkup.x1 > existing.x0;
 
-      return isFullOverlap || isSameTypeOverlap;
+      // 3. Проверка на пересечение с шумом
+      const isNoiseOverlap =
+        existing.type === "Noise" &&
+        newMarkup.x0 < existing.x1 &&
+        newMarkup.x1 > existing.x0;
+
+      return isFullOverlap || isSameTypeOverlap || isNoiseOverlap;
     });
+  }
+
+  #showOverlapWarning() {
+    const warning = this.#graphGroup.svg.append("rect")
+      .attr("class", "overlap-warning")
+      .attr("x", 0)
+      .attr("width", "100%")
+      .attr("height", "100%")
+      .style("fill", "rgba(255,0,0,0.1)")
+      .transition().duration(250).style("opacity", 0).remove();
+  }
+
+  #applyNoiseMarkup(newNoiseMarkup) {
+    EcgGraphMarkupManager.markups = EcgGraphMarkupManager.markups
+      .filter(markup =>
+        markup.x1 < newNoiseMarkup.x0 ||
+        markup.x0 > newNoiseMarkup.x1
+      );
+
+    EcgGraphMarkupManager.markups.push(newNoiseMarkup);
+    this.#triggerMarkChange();
   }
 
   #handleBrushEnd(event) {
@@ -405,7 +432,16 @@ class EcgGraphMarkupManager {
       x1: x1,
       type: this.#activeMarkup,
     };
-    if (this.#hasForbiddenOverlap(newMarkup)) return;
+
+    if (newMarkup.type === "Noise") {
+      this.#applyNoiseMarkup(newMarkup);
+      return;
+    }
+
+    if (this.#hasForbiddenOverlap(newMarkup)) {
+      this.#showOverlapWarning();
+      return;
+    }
 
     EcgGraphMarkupManager.markups.push(newMarkup);
     this.#triggerMarkChange();
@@ -440,6 +476,8 @@ class EcgGraphMarkupManager {
             .attr("y", 0)
             .attr("height", this.#graphGroup.svg.attr("height"))
             .attr("fill", (d) => EcgGraphMarkupManager.colorMap[d.type])
+            .attr("stroke", "black")
+            .attr("stroke-width", 3)
             .attr("opacity", 0.4)
             .on("contextmenu", (event, d) => this.#removeMarkup(event, d))
             .on("mousedown", (event, d) => this.#handleResizeStart(event, d)),
@@ -465,14 +503,14 @@ class EcgGraphMarkupManager {
     event.preventDefault();
     const mouseX = d3.pointer(event, this.#graphGroup.svg.node())[0];
     const xScale = this.#graphGroup.xScale;
-    const originalValues = {x0: markup.x0, x1: markup.x1, type: markup.type};
+    const originalValues = { x0: markup.x0, x1: markup.x1, type: markup.type };
 
     const resizeType =
       Math.abs(mouseX - xScale(markup.x0)) < 20
         ? "left"
         : Math.abs(mouseX - xScale(markup.x1)) < 20
-        ? "right"
-        : null;
+          ? "right"
+          : null;
     if (!resizeType) return;
 
     const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
@@ -488,7 +526,7 @@ class EcgGraphMarkupManager {
       const newValues = {
         x0: resizeType === "left" ? newX : markup.x0,
         x1: resizeType === "right" ? newX : markup.x1,
-        type : markup.type
+        type: markup.type
       }
 
       isValidResize = !this.#hasForbiddenOverlap(
@@ -509,6 +547,7 @@ class EcgGraphMarkupManager {
         Object.assign(markup, originalValues); // Откат изменений
         this.drawMarkups();
         this.#triggerMarkChange();
+        this.#showOverlapWarning();
       }
       d3.select(window).on("mousemove", null).on("mouseup", null);
     };
@@ -531,7 +570,7 @@ const chartOptions = {
     return this.cellsPerMv * this.maxMvValue;
   },
   get totalVerticalLines() {
-      return Math.ceil((window.ecgData[0].length / this.hertz) * this.cellsPerSecond);
+    return Math.ceil((window.ecgData[0].length / this.hertz) * this.cellsPerSecond);
   }
 };
 
