@@ -7,6 +7,7 @@ class SingleEcgGraph {
   #yScale;
   #lineGroup;
   #linePath;
+  #lineGenerator;
 
   constructor(chartGroup, data, name, offsetY, opts, xScale, yScale) {
     this.#chartGroup = chartGroup;
@@ -20,23 +21,24 @@ class SingleEcgGraph {
   }
 
   #initGraph() {
-    this.#drawLine();
-  }
-
-  #drawLine() {
     this.#lineGroup = this.#chartGroup
-      .append("g")
-      .attr("class", "line-group")
-      .attr("transform", `translate(0, ${this.#offsetY})`);
+    .append("g")
+    .attr("class", "line-group")
+    .attr("transform", `translate(0, ${this.#offsetY})`);
 
-    this.#linePath = this.#lineGroup
-      .append("path")
-      .attr("class", "ecg-line")
-      .attr("fill", "none")
-      .attr("stroke", "blue")
-      .attr("stroke-width", 1.5);
+  this.#linePath = this.#lineGroup
+    .append("path")
+    .attr("class", "ecg-line")
+    .attr("fill", "none")
+    .attr("stroke", "blue")
+    .attr("stroke-width", 1.5);
 
-    this.updateGraph();
+    this.#lineGenerator = (domainStart) => d3.line()
+      .x((d, i) => this.#xScale(i + domainStart))
+      .y((d) => this.#yScale(d))
+      .curve(d3.curveLinear);
+
+  this.updateGraph();
   }
 
   updateGraph() {
@@ -46,13 +48,15 @@ class SingleEcgGraph {
       Math.ceil(domainEnd)
     );
 
-    const lineGenerator = d3
-      .line()
-      .x((d, i) => this.#xScale(i + domainStart))
-      .y((d) => this.#yScale(d))
-      .curve(d3.curveLinear);
+    // const lineGenerator = d3
+    //   .line()
+    //   .x((d, i) => this.#xScale(i + domainStart))
+    //   .y((d) => this.#yScale(d))
+    //   .curve(d3.curveLinear);
 
-    this.#linePath.datum(visibleData).attr("d", lineGenerator);
+    //this.#linePath.datum(visibleData).attr("d", lineGenerator);
+
+    this.#linePath.datum(visibleData).attr("d", this.#lineGenerator(domainStart));
   }
 }
 
@@ -75,14 +79,14 @@ class EcgGraphGroup {
   }
 
   #initGraphGroup(containerId) {
-    this.#initSvg(containerId);
+    this.#initSvg();
     this.#initScales();
     this.#initClipPath(containerId);
     this.#drawGrid();
     this.#initGraphs();
   }
 
-  #initSvg(containerId) {
+  #initSvg() {
     const { cellSize, gridWidth, gridHeight } = this.#opts;
     const height = cellSize * gridHeight * this.#dataGroup.length;
 
@@ -200,8 +204,12 @@ class EcgGraphSynchronizer {
   #rightGraphGroup;
   #leftMarkup;
   #rightMarkup;
+  #zoomCompensationFactor;
+  #gridStep;
 
   constructor(leftContainerId, rightContainerId, dataGroup, chartNames, opts) {
+    this.#zoomCompensationFactor = 0.7;
+    this.#gridStep = opts.visibleLength / opts.gridWidth;
     this.#leftGraphGroup = new EcgGraphGroup(
       leftContainerId,
       dataGroup.slice(0, 6),
@@ -265,8 +273,7 @@ class EcgGraphSynchronizer {
   }
 
   #handleScroll(event, graphGroup) {
-    const zoomCompensationFactor = 0.7;
-    const scrollStep = Math.abs(event.deltaY) * zoomCompensationFactor;
+    const scrollStep = Math.abs(event.deltaY) * this.#zoomCompensationFactor;
     let [domainStart, domainEnd] = graphGroup.xScale.domain();
 
     const maxDomainStart = graphGroup.dataGroup[0].length - graphGroup.opts.visibleLength;
@@ -280,28 +287,30 @@ class EcgGraphSynchronizer {
     );
 
     graphGroup.xScale.domain([domainStart, domainEnd]);
-
-    graphGroup.graphs.forEach((graph) => graph.updateGraph());
-
-    this.#updateGrid(graphGroup);
-    this.#updateMarkups();
+    requestAnimationFrame(() => {
+      graphGroup.graphs.forEach((graph) => graph.updateGraph());
+      this.#updateGrid(graphGroup);
+      this.#updateMarkups();
+    });
   }
 
   #resetPosition(graphGroup) {
     graphGroup.xScale.domain([0, graphGroup.opts.visibleLength]);
-    graphGroup.graphs.forEach((graph) => graph.updateGraph());
-    this.#updateGrid(graphGroup);
-    this.#updateMarkups();
+    requestAnimationFrame(() => {
+      graphGroup.graphs.forEach((graph) => graph.updateGraph());
+      this.#updateGrid(graphGroup);
+      this.#updateMarkups();
+    });
   }
 
   #updateGrid(graphGroup) {
-    const { visibleLength, gridWidth, totalVerticalLines } = graphGroup.opts;
-    const step = visibleLength / gridWidth;
+    //const { visibleLength, gridWidth, totalVerticalLines } = graphGroup.opts;
+    //const step = visibleLength / gridWidth;
     const [domainStart, domainEnd] = graphGroup.xScale.domain();
 
     const visibleIndices = d3
-      .range(0, totalVerticalLines)
-      .filter((i) => (i * step) >= domainStart && (i * step) <= domainEnd);
+      .range(0, graphGroup.opts.totalVerticalLines)
+      .filter((i) => (i * this.#gridStep) >= domainStart && (i * this.#gridStep) <= domainEnd);
 
     graphGroup.graphGroup
       .select(".grid-lines")
@@ -315,13 +324,13 @@ class EcgGraphSynchronizer {
             .attr("stroke", "gray")
             .attr("y1", 0)
             .attr("y2", graphGroup.svg.attr("height"))
-            .attr("x1", (d) => graphGroup.xScale(d * step))
-            .attr("x2", (d) => graphGroup.xScale(d * step))
+            .attr("x1", (d) => graphGroup.xScale(d * this.#gridStep))
+            .attr("x2", (d) => graphGroup.xScale(d * this.#gridStep))
             .attr("stroke-width", (d) => (d % 5 === 0 ? 1 : 0.5)),
         (update) =>
           update
-            .attr("x1", (d) => graphGroup.xScale(d * step))
-            .attr("x2", (d) => graphGroup.xScale(d * step)),
+            .attr("x1", (d) => graphGroup.xScale(d * this.#gridStep))
+            .attr("x2", (d) => graphGroup.xScale(d * this.#gridStep)),
         (exit) => exit.remove()
       );
   }
@@ -537,17 +546,21 @@ class EcgGraphMarkupManager {
       if (isValidResize) {
         if (resizeType === "left") markup.x0 = Math.min(newX, markup.x1 - 1);
         if (resizeType === "right") markup.x1 = Math.max(newX, markup.x0 + 1);
-        this.drawMarkups();
-        this.#triggerMarkChange();
+        requestAnimationFrame(() => {
+          this.drawMarkups();
+          this.#triggerMarkChange();
+        });
       }
     };
 
     const onMouseUp = () => {
       if (!isValidResize) {
         Object.assign(markup, originalValues); // Откат изменений
+        requestAnimationFrame(() => {
         this.drawMarkups();
         this.#triggerMarkChange();
         this.#showOverlapWarning();
+        });
       }
       d3.select(window).on("mousemove", null).on("mouseup", null);
     };
