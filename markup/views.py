@@ -9,4 +9,10 @@ from django.shortcuts import render
 def markup(request):
     data = np.load("media/vanya.npy").tolist()
     names = ["I", "II", "III", "AVR", "AVL", "AVF", "V1", "V2", "V3", "V4", "V5", "V6"]
-    return render(request, "markup/markup.html", context={"data": data, "names": names})
+    with open("media/output.txt", mode="r", encoding="utf8") as f:
+        diseases = f.read().split("\n")
+    return render(
+        request,
+        "markup/markup.html",
+        context={"data": data, "names": names, "diseases": diseases},
+    )

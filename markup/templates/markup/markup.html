@@ -2,10 +2,11 @@
 {% load static %}
 {% block script %}
 <script src="https://d3js.org/d3.v7.min.js"></script>
-<script src="{% static 'markupheart/js/script6.js' %}"></script>
+<script type="module" src="{% static 'markupheart/js/app.js'%}"></script>
 <script>
     window.ecgData = {{ data | safe }};
     window.ecgNames = {{ names | safe }};
+    window.diseases = {{ diseases | safe }};
 </script>
 {% endblock %}
 
@@ -36,8 +37,10 @@
         <div class="tab-content" id="diagnosis-content" style="display: none;">
             <p>Сюда можно добавить содержимое для диагнозов.</p>
         </div>
+        <button id="save-markup-button" style="margin: 10px; padding: 5px 10px;">
+            Сохранить разметку
+        </button>
     </div>
-
 </div>
 
 {% endblock %}
