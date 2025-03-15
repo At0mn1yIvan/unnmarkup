@@ -96,7 +96,7 @@ export class EcgGraphMarkupManager {
     const newMarkup = {
       x0: x0,
       x1: x1,
-      type: this.#uiManager.getActiveMarkup(),
+      type: this.#uiManager.markupMenuManager.getActiveMarkup(),
     };
 
     if (newMarkup.type === "Noise") {
