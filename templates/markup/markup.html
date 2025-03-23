@@ -2,11 +2,11 @@
 {% load static %}
 {% block script %}
 <script src="https://d3js.org/d3.v7.min.js"></script>
-<script type="module" src="{% static 'markupheart/js/app.js'%}"></script>
+<script type="module" src="{% static 'markup/js/app.js'%}"></script>
 <script>
     window.ecgData = {{ data | safe }};
     window.ecgNames = {{ names | safe }};
-    window.diseases = {{ diseases | safe }};
+    window.diseasesData  = {{ diseases_json | safe }};
 </script>
 {% endblock %}
 

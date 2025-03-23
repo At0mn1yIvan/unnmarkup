@@ -15,7 +15,9 @@ export class UIManager {
 
   constructor() {
     this.markupMenuManager = new MarkupMenuManager();
-    this.diseaseTreeManager = new DiseaseTreeManager();
+    this.diseaseTreeManager = new DiseaseTreeManager("diagnosis-content");
+
+    this.diseaseTreeManager.render();
 
     this.#initSaveButton();
     this.#initTabs();
@@ -54,21 +56,57 @@ export class UIManager {
 
   // Обновление текста кнопки
   #updateSaveButton() {
-    const buttonText = {
-      [TABS.MARKUP]: "Сохранить разметку",
-      [TABS.DIAGNOSIS]: "Сохранить диагнозы",
+    const buttonConfig = {
+      [TABS.MARKUP]: {
+        text: "Сохранить разметку",
+        handler: () => this.markupMenuManager.saveMarkup()
+      },
+      [TABS.DIAGNOSIS]: {
+        text: "Сохранить диагнозы",
+        handler: () => this.#saveDiagnoses()
+      }
     };
 
-    this.#saveButton.innerText = buttonText[this.#activeTab];
+    const config = buttonConfig[this.#activeTab];
+    this.#saveButton.textContent = config.text;
   }
 
   // Обработчик нажатия на кнопку сохранения
   #handleSave() {
     const actions = {
       [TABS.MARKUP]: () => this.markupMenuManager.saveMarkup(),
-      [TABS.DIAGNOSIS]: () => this.diseaseTreeManager.parseDiseases(),
+      [TABS.DIAGNOSIS]: () => this.#saveDiagnoses()
     };
 
     actions[this.#activeTab]();
+  }
+
+  async #saveDiagnoses() {
+    try {
+      const selectedDiagnoses = this.diseaseTreeManager.getSelectedDiagnoses();
+      
+      // Здесь должна быть логика отправки на сервер
+      console.log("Selected diagnoses:", selectedDiagnoses);
+      
+      // Пример отправки через fetch:
+      const response = await fetch("/save-diagnoses/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": this.#getCsrfToken()
+        },
+        body: JSON.stringify({ diagnoses: selectedDiagnoses })
+      });
+
+      if (!response.ok) throw new Error("Ошибка сохранения");
+      alert("Диагнозы успешно сохранены!");
+    } catch (error) {
+      console.error("Ошибка:", error);
+      alert("Произошла ошибка при сохранении");
+    }
+  }
+
+  #getCsrfToken() {
+    return document.querySelector("[name=csrfmiddlewaretoken]").value;
   }
 }
