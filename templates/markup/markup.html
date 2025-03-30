@@ -10,37 +10,57 @@
 </script>
 {% endblock %}
 
+
 {% block content %}
-{% load markup_filters %}
-
-
-<div style="display: flex; gap: 20px;">
-
-    <div id="charts-container" style="display: flex; gap: 0;">
-        <!-- Левая колонка -->
-        <div id="left-column" style="display: flex; flex-direction: column; gap: 0;"></div>
-        <!-- Правая колонка -->
-        <div id="right-column" style="display: flex; flex-direction: column; gap: 0;"></div>
+<div class="container-fluid">
+<div class="row g-0">
+    <div class="col-lg-9 pe-2">
+        <div class="d-flex overflow-hidden" id="charts-container">
+            <div class="flex-fill" id="left-column"></div>
+            <div class="flex-fill" id="right-column"></div>
+        </div>
     </div>
-
-    <div id="tabs-container" style="width: 300px; border: 1px solid #ccc; border-radius: 5px;">
-        <nav style="display: flex; border-bottom: 1px solid #ccc;">
-            <button class="tab-button active" data-tab="markup">Разметка</button>
-            <button class="tab-button" data-tab="diagnosis">Диагнозы</button>
-        </nav>
-        <div class="tab-content" id="markup-content">
-            <label><input type="radio" name="markup-option" value="QRS" checked> QRS</label><br>
-            <label><input type="radio" name="markup-option" value="P"> P</label><br>
-            <label><input type="radio" name="markup-option" value="T"> T</label><br>
-            <label><input type="radio" name="markup-option" value="Noise"> Noise</label>
+    <div class="col-lg-3 ps-2 position-sticky end-0">
+        <div class="card">
+            <div class="card-header p-0">
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="markup-tab" data-bs-toggle="tab" data-bs-target="#markup-content" type="button" role="tab">Разметка</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="diagnosis-tab" data-bs-toggle="tab" data-bs-target="#diagnosis-content" type="button" role="tab">Диагнозы</button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="myTabContent">
+                    <div class="tab-pane fade show active" id="markup-content" role="tabpanel">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="markup-option" id="qrs-option" value="QRS" checked>
+                            <label class="form-check-label" for="qrs-option">QRS</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="markup-option" id="p-option" value="P">
+                            <label class="form-check-label" for="p-option">P</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="markup-option" id="t-option" value="T">
+                            <label class="form-check-label" for="t-option">T</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="markup-option" id="noise-option" value="Noise">
+                            <label class="form-check-label" for="noise-option">Noise</label>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="diagnosis-content" role="tabpanel">
+                        <p>Сюда можно добавить содержимое для диагнозов.</p>
+                    </div>
+                </div>
+                <button id="save-button" class="btn btn-primary w-100 mt-3">Сохранить разметку</button>
+            </div>
         </div>
-        <div class="tab-content" id="diagnosis-content" style="display: none;">
-            <p>Сюда можно добавить содержимое для диагнозов.</p>
-        </div>
-        <button id="save-button" style="margin: 10px; padding: 5px 10px;">
-            Сохранить разметку
-        </button>
     </div>
 </div>
-
+</div>
 {% endblock %}
+

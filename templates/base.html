@@ -1,86 +1,33 @@
 {% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="ru">
   <head>
-    <title>{{title}}</title>
-
-    <link
-      type="text/css"
-      href="{% static 'css/styles.css' %}"
-      rel="stylesheet"
-    />
-    {% block script %}
-    {% endblock %}
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link
       rel="shortcut icon"
-      href="{% static 'images/unn_main.ico' %}"
+      href="{% static 'images/fav/unn_main.ico' %}"
       type="image/x-icon"
     />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {% block script %}{% endblock %}
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"
+      crossorigin="anonymous"
+    />
+    <title>{% block title %} {% endblock %}</title>
   </head>
-  <body>
-    <table class="table-page" border="0" cellpadding="0" cellspacing="0">
-      <tr>
-        <td valign="top">
-          {% block mainmenu %}
-          <div class="header">
-            <ul id="mainmenu" class="mainmenu">
-              <li class="logo">
-                <a href="{% url 'home' %}">
-                  <div class="logo"></div>
-                </a>
-              </li>
-              {% for m in mainmenu %}
-              <li><a href="{% url m.url_name %}">{{m.title}}</a></li>
-              {% endfor %} {% if user.is_authenticated %}
-              <form
-                id="logoutForm"
-                method="post"
-                action="{% url 'users:logout' %}"
-              >
-                {% csrf_token %}
-                <li class="last">
-                  <a href="{% url 'users:profile' %}">{{user.username}}</a> |
-                  <a
-                    href="#"
-                    onclick="document.getElementById('logoutForm').submit(); return false;"
-                    >Выйти</a
-                  >
-                </li>
-              </form>
-              {% else %}
-              <li class="last">
-                <a href="{% url 'users:login' %}">Войти</a> |
-                <a href="{% url 'users:register' %}">Регистрация</a>
-              </li>
-              {% endif %}
-            </ul>
-            <div class="clear"></div>
-          </div>
-          {% endblock mainmenu %}
-
-          <table
-            class="table-content"
-            border="0"
-            cellpadding="0"
-            cellspacing="0"
-          >
-            <tr>
-              <td valign="top" class="content">
-                <!-- Хлебные крошки -->
-                {% block breadcrumbs %} {% endblock %}
-
-                <!-- Блок контента -->
-                <div class="content-text">
-                  {% block content %} {% endblock %}
-                </div>
-                <!-- Конец блока контента -->
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
+  <body class="fs-3">
+    {% include "includes/header.html" %}
+    <main class="pt-5 my-5 mx-0 px-0">
+      <div class="container-fluid">{% block content %} {% endblock %}</div>
+    </main>
+    {% include "includes/footer.html" %}
   </body>
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"
+    integrity="sha384-QJHtvGhmr9XOIpI6YVutG+2QOK9T+ZnN4kzFN1RtK3zEFEIsxhlmWl5/YESvpZ13"
+    crossorigin="anonymous"
+  ></script>
 </html>

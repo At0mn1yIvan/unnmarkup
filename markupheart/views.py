@@ -1,9 +1,9 @@
+import numpy as np
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponse, HttpResponseNotFound, Http404
+from django.http import Http404, HttpResponse, HttpResponseNotFound
 from django.shortcuts import render
 from django.views.generic import ListView, TemplateView
-import numpy as np
 from markupheart.utils import DataMixin
 
 # Create your views here.

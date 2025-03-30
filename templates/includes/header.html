@@ -1,0 +1,79 @@
+{% load static %} {% load form_filters %}
+<header>
+  <nav
+    class="navbar navbar-expand-lg navbar-light bg-light fixed-top shadow-sm"
+  >
+    <div class="container">
+      <div
+        class="navbar-toggler"
+        type="button"
+        data-toggle="collapse"
+        data-target="#navbarNav"
+        aria-controls="navbarNav"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </div>
+      <a class="navbar-brand" href="{% url 'home' %}">
+        <img
+          src="{% static 'images/unn_logo.png' %}"
+          height="50"
+          class="d-inline-block align-top"
+          alt=""
+        />
+      </a>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="nav nav-pills d-flex w-100">
+          {% with request.resolver_match.view_name as view_name %}
+          {% for m in mainmenu %}
+          <li class="nav-item">
+            <a
+              class="nav-link {% active_class m.url_name %}"
+              href="{% url m.url_name %}"
+            >
+              {{ m.title }}
+            </a>
+          </li>
+          {% endfor %} 
+          {% if user.is_authenticated %}
+          <li class="nav-item ms-auto">
+            <a
+              class="nav-link {% active_class 'users:profile' %}"
+              href="{% url 'users:profile' %}"
+              >{{ user.username }}</a
+            >
+          </li>
+          <form id="logoutForm" method="post" action="{% url 'users:logout' %}">
+            {% csrf_token %}
+            <li class="nav-item">
+              <a
+                class="nav-link"
+                href="#"
+                onclick="document.getElementById('logoutForm').submit(); return false;"
+                >Выйти</a
+              >
+            </li>
+          </form>
+          {% else %}
+          <li class="nav-item ms-auto">
+            <a
+              class="nav-link {% active_class 'users:login' %}"
+              href="{% url 'users:login' %}"
+              >Войти</a
+            >
+          </li>
+          <li class="nav-item">
+            <a
+              class="nav-link {% active_class 'users:register' %}"
+              href="{% url 'users:register' %}"
+              >Регистрация</a
+            >
+          </li>
+          {% endif %} 
+          {% endwith %}
+        </ul>
+      </div>
+    </div>
+  </nav>
+</header>

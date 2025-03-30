@@ -202,7 +202,7 @@ export class EcgGraphMarkupManager {
 
     const onMouseUp = () => {
       if (!isValidResize) {
-        Object.assign(markup, originalValues); // Откат изменений
+        Object.assign(markup, originalValues);
         requestAnimationFrame(() => {
           this.drawMarkups();
           this.#triggerMarkChange();
