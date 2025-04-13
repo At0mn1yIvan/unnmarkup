@@ -5,4 +5,6 @@ app_name = "markup"
 
 urlpatterns = [
     path("markup/", views.markup, name="markup"),
+    path("save-diagnoses/", views.save_diagnoses, name="save_diagnoses"),
+    path("save-markup/", views.save_markup, name="save_markup"),
 ]

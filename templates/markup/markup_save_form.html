@@ -1,0 +1,8 @@
+{% load static %}
+<form id="markup-form" method="post" action="{% url 'markup:save_markup' %}">
+  {% csrf_token %}
+  <input type="hidden" id="markup-data" name="markup_data" />
+  <button type="submit" class="btn btn-primary w-100 mt-3">
+    Сохранить разметку
+  </button>
+</form>

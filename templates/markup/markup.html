@@ -1,66 +1,84 @@
-{% extends "base.html" %}
-{% load static %}
+{% extends "base.html" %} {% load static %}
 {% block script %}
 <script src="https://d3js.org/d3.v7.min.js"></script>
+
+{{ data|json_script:"ecgData" }}
+{{ ecg_names|json_script:"ecgNames" }}
+{{ diseases_json|json_script:"diseasesData" }}
+{{ markups|json_script:"markups" }}
+
 <script type="module" src="{% static 'markup/js/app.js'%}"></script>
-<script>
-    window.ecgData = {{ data | safe }};
-    window.ecgNames = {{ names | safe }};
-    window.diseasesData  = {{ diseases_json | safe }};
-</script>
-{% endblock %}
-
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="container-fluid">
-<div class="row g-0">
-    <div class="col-lg-9 pe-2">
-        <div class="d-flex overflow-hidden" id="charts-container">
-            <div class="flex-fill" id="left-column"></div>
-            <div class="flex-fill" id="right-column"></div>
-        </div>
+  <div class="row g-0">
+    <div class="col-9">
+      <div class="d-flex overflow-hidden" id="charts-container">
+        <div class="flex-fill" id="left-column"></div>
+        <div class="flex-fill" id="right-column"></div>
+      </div>
     </div>
-    <div class="col-lg-3 ps-2 position-sticky end-0">
-        <div class="card">
-            <div class="card-header p-0">
-                <ul class="nav nav-tabs" id="myTab" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="markup-tab" data-bs-toggle="tab" data-bs-target="#markup-content" type="button" role="tab">Разметка</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="diagnosis-tab" data-bs-toggle="tab" data-bs-target="#diagnosis-content" type="button" role="tab">Диагнозы</button>
-                    </li>
-                </ul>
-            </div>
-            <div class="card-body">
-                <div class="tab-content" id="myTabContent">
-                    <div class="tab-pane fade show active" id="markup-content" role="tabpanel">
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="markup-option" id="qrs-option" value="QRS" checked>
-                            <label class="form-check-label" for="qrs-option">QRS</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="markup-option" id="p-option" value="P">
-                            <label class="form-check-label" for="p-option">P</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="markup-option" id="t-option" value="T">
-                            <label class="form-check-label" for="t-option">T</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="markup-option" id="noise-option" value="Noise">
-                            <label class="form-check-label" for="noise-option">Noise</label>
-                        </div>
-                    </div>
-                    <div class="tab-pane fade" id="diagnosis-content" role="tabpanel">
-                        <p>Сюда можно добавить содержимое для диагнозов.</p>
-                    </div>
+    
+    <div class="col-3 position-sticky end-0">
+      <div class="card">
+        <div class="card-header p-0">
+          <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link active"
+                id="markup-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#markup-content"
+                type="button"
+                role="tab"
+              >
+                Разметка
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="diagnosis-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#diagnosis-content"
+                type="button"
+                role="tab"
+              >
+                Диагнозы
+              </button>
+            </li>
+          </ul>
+        </div>
+        <div class="card-body">
+          <div class="tab-content" id="myTabContent">
+            <div class="tab-pane fade show active" id="markup-content" role="tabpanel">
+
+              {% for item in markup_types %}
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="markup-option"
+                    id="{{ item.value }}-option"
+                    value="{{ item.value }}"
+                    {% if forloop.first %}checked{% endif %}
+                  />
+                  <label class="form-check-label" for="{{ item.value }}-option">
+                    <span style="color: {{ item.color }}; font-weight: bold">
+                      {{ item.value }}
+                    </span>
+                  </label>
                 </div>
-                <button id="save-button" class="btn btn-primary w-100 mt-3">Сохранить разметку</button>
+              {% endfor %}
+
+              {% include "markup/markup_save_form.html" %}
             </div>
+            <div class="tab-pane fade" id="diagnosis-content" role="tabpanel">
+              {% include "markup/diseases_save_form.html" %}
+            </div>
+          </div>
         </div>
+      </div>
     </div>
-</div>
+  </div>
 </div>
 {% endblock %}
-

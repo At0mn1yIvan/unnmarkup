@@ -11,11 +11,11 @@ export class EcgGraphSynchronizer {
   #zoomCompensationFactor;
   #gridStep;
 
-  constructor(leftContainerId, rightContainerId, dataGroup, chartNames, opts) {
+  constructor(leftContainerId, rightContainerId, dataGroup, chartNames, diseasesData, opts) {
     this.#zoomCompensationFactor = 0.7;
     this.#gridStep = opts.visibleLength / opts.gridWidth;
 
-    this.#uiManager = new UIManager();
+    this.#uiManager = new UIManager(diseasesData);
 
     this.#leftGraphGroup = new EcgGraphGroup(
       leftContainerId,

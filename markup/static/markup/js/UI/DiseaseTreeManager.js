@@ -2,54 +2,58 @@ export class DiseaseTreeManager {
   #diseases;
   #container;
 
-  constructor(containerId) {
-      this.#container = document.getElementById(containerId);
-      this.#diseases = window.diseasesData;  // Получаем JSON данные
+  constructor(diseasesData, containerId) {
+    this.#container = document.getElementById(containerId);
+    this.#diseases = diseasesData;  // Получаем JSON данные
+    this.#render();
   }
 
   // Основной метод для построения дерева
-  render() {
-      this.#container.innerHTML = "";  // Очищаем контейнер
-      const ul = document.createElement("ul");
-      this.#buildTree(this.#diseases, ul);
-      this.#container.appendChild(ul);
+  #render() {
+    this.#container.innerHTML = "";
+    const ul = document.createElement("ul");
+    ul.className = "list-group disease-tree";
+    this.#buildTree(this.#diseases, ul, null);
+    this.#container.appendChild(ul);
   }
 
   // Рекурсивное построение дерева
-  #buildTree(nodes, parentElement) {
-      for (const [name, children] of Object.entries(nodes)) {
-          const li = document.createElement("li");
-          const isLeaf = children === null;
+  #buildTree(nodes, parentElement, parentName) {
+    for (const [name, children] of Object.entries(nodes)) {
+      const li = document.createElement("li");
+      li.className = "list-group-item border-0 p-0 mb-1"; 
 
-          if (isLeaf) {
-              // Создаем чекбокс для конечного диагноза
-              li.innerHTML = `
-                  <label>
-                      <input type="checkbox" name="diagnosis" value="${name}">
-                      ${name}
-                  </label>
-              `;
-          } else {
-              // Создаем раскрывающийся список
-              li.innerHTML = `
-                  <details>
-                      <summary>${name}</summary>
-                      <ul class="nested-list"></ul>
-                  </details>
-              `;
-              
-              // Рекурсивно строим дочерние элементы
-              const childUl = li.querySelector("ul");
-              this.#buildTree(children, childUl);
-          }
-
-          parentElement.appendChild(li);
+      if (children === null) {
+        let hierarchy = [parentName, name].join(" | ");
+        // Для листовых элементов сохраняем имя родителя | имя элемента
+        li.innerHTML = `
+          <div class="form-check ps-2 py-1">
+            <input class="form-check-input border border-secondary" 
+                   type="checkbox" 
+                   name="diagnoses" 
+                   value="${hierarchy}"
+                   id="diag-${hierarchy.replace(/\s+\|\s+/g, '-')}">
+            <label class="form-check-label text-dark" 
+                   for="diag-${hierarchy.replace(/\s+\|\s+/g, '-')}">
+              ${name}
+            </label>
+          </div>  
+            `;
+      } else {
+        li.innerHTML = `
+          <details class="dropdown">
+            <summary class="tn btn-sm btn-outline-primary w-100 text-start d-flex align-items-center py-1 fs-5"">
+              <span class="flex-grow-1 small">${name}</span>
+              <span class="dropdown-arrow ms-auto small">▼</span>
+            </summary>
+            <ul class="list-group nested-list mt-1"></ul>
+          </details>
+            `;
+        const childUl = li.querySelector("ul");
+        this.#buildTree(children, childUl, name);
       }
-  }
 
-  // Метод для получения выбранных диагнозов
-  getSelectedDiagnoses() {
-      return Array.from(this.#container.querySelectorAll('input[name="diagnosis"]:checked'))
-          .map(checkbox => checkbox.value);
+      parentElement.appendChild(li);
+    }
   }
 }

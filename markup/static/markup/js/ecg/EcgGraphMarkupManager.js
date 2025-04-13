@@ -94,8 +94,8 @@ export class EcgGraphMarkupManager {
     const [x0, x1] = selection.map(this.#graphGroup.xScale.invert);
     this.#graphGroup.svg.select(".brush").call(d3.brushX().move, null);
     const newMarkup = {
-      x0: x0,
-      x1: x1,
+      x0: Math.round(x0),
+      x1: Math.round(x1),
       type: this.#uiManager.markupMenuManager.getActiveMarkup(),
     };
 
@@ -191,8 +191,8 @@ export class EcgGraphMarkupManager {
       );
 
       if (isValidResize) {
-        if (resizeType === "left") markup.x0 = Math.min(newX, markup.x1 - 1);
-        if (resizeType === "right") markup.x1 = Math.max(newX, markup.x0 + 1);
+        if (resizeType === "left") markup.x0 = Math.round(Math.min(newX, markup.x1 - 1));
+        if (resizeType === "right") markup.x1 = Math.round(Math.max(newX, markup.x0 + 1));
         requestAnimationFrame(() => {
           this.drawMarkups();
           this.#triggerMarkChange();
@@ -217,5 +217,9 @@ export class EcgGraphMarkupManager {
 
   static getMarkups() {
     return EcgGraphMarkupManager.markups;
+  }
+
+  static loadMarkups(markups) {
+    EcgGraphMarkupManager.markups = markups;
   }
 }

@@ -1,27 +1,74 @@
-/* Общие стили для графиков */
-#charts-container {
-  box-shadow: 0 0 0 1px #7bb2e9; /* Единая граница вокруг обоих графиков */
+/* Основные стили дерева */
+.disease-tree {
+  max-width: 100%;
+  font-size: 0.9rem; /* Уменьшенный размер текста */
 }
 
-/* Закругленные углы */
-.rounded-start {
-  border-top-left-radius: 0.375rem !important;
-  border-bottom-left-radius: 0.375rem !important;
-}
-.rounded-end {
-  border-top-right-radius: 0.375rem !important;
-  border-bottom-right-radius: 0.375rem !important;
+/* Чекбоксы */
+.disease-tree .form-check-input {
+  width: 1.1em;
+  height: 1.1em;
+  margin-top: 0.15em;
+  box-shadow: none !important;
 }
 
-/* Разделительная линия между графиками */
-.border-start {
-  border-color: #3f5f7e !important;
+.disease-tree .form-check-input:checked {
+  background-color: #4a6bdf;
+  border-color: #4a6bdf !important;
 }
 
-/* Отступы только на больших экранах */
-@media (max-width: 991.98px) {
-  .pe-lg-2, .ps-lg-2 {
-    padding-right: 0 !important;
-    padding-left: 0 !important;
-  }
+.disease-tree .form-check-input:focus {
+  box-shadow: 0 0 0 0.2rem rgba(74, 107, 223, 0.25) !important;
+}
+
+.disease-tree .form-check-label {
+  cursor: pointer;
+  color: #333;
+  font-size: 1.1rem; /* Уменьшенный размер текста */
+  transition: all 0.2s;
+  padding-left: 0.3rem;
+}
+
+.disease-tree .form-check-label:hover {
+  color: #2c3e50 !important;
+  text-decoration: underline;
+}
+
+/* Раскрывающиеся элементы */
+.disease-tree details.dropdown > summary {
+  list-style: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: #f8fafc; /* Светлый фон */
+  border: 1px solid #dee2e6 !important;
+}
+
+.disease-tree details.dropdown > summary:hover {
+  background-color: #e9ecef;
+  border-color: #ced4da !important;
+}
+
+.disease-tree details.dropdown[open] > summary {
+  background-color: #4a6bdf !important;
+  color: white !important;
+  border-color: #4a6bdf !important;
+}
+
+.disease-tree details.dropdown[open] > summary .dropdown-arrow {
+  transform: rotate(180deg);
+  color: white !important;
+}
+
+.disease-tree .dropdown-arrow {
+  transition: transform 0.2s;
+  font-size: 0.7rem;
+  margin-right: 0.3rem;
+  color: #6c757d;
+}
+
+/* Вложенные списки */
+.disease-tree .nested-list {
+  padding-left: 1.2rem;
+  border-left: 2px solid #e9ecef;
+  margin-left: 0.8rem;
 }
