@@ -14,6 +14,11 @@ export class EcgGraphMarkupManager {
     this.#graphGroup = graphGroup;
     this.#uiManager = uiManager;
     this.#initBrush();
+
+    if (EcgGraphMarkupManager.markups.length > 0) {
+      // Если нейросеть предсказала данные- отрисовываем их сразу.
+      this.drawMarkups();
+    }
   }
 
   #initBrush() {
@@ -119,6 +124,7 @@ export class EcgGraphMarkupManager {
   }
 
   drawMarkups() {
+    console.log("Отрисовка");
     const markupGroup = this.#graphGroup.svg.select(".brush-markups");
     if (markupGroup.empty()) return;
 
@@ -194,7 +200,6 @@ export class EcgGraphMarkupManager {
         if (resizeType === "left") markup.x0 = Math.round(Math.min(newX, markup.x1 - 1));
         if (resizeType === "right") markup.x1 = Math.round(Math.max(newX, markup.x0 + 1));
         requestAnimationFrame(() => {
-          this.drawMarkups();
           this.#triggerMarkChange();
         });
       }
@@ -204,7 +209,6 @@ export class EcgGraphMarkupManager {
       if (!isValidResize) {
         Object.assign(markup, originalValues);
         requestAnimationFrame(() => {
-          this.drawMarkups();
           this.#triggerMarkChange();
           this.#showOverlapWarning();
         });

@@ -1,15 +1,20 @@
 import { MarkupMenuManager } from "../UI/MarkupMenuManager.js";
 import { DiseaseTreeManager } from "../UI/DiseaseTreeManager.js";
+import { IndexedDatabase } from "../indexedDB/IndexedDatabase.js";
+
 
 export class UIManager {
+  db;
   markupMenuManager;
   diseaseTreeManager;
 
   constructor(diseasesData) {
-    this.markupMenuManager = new MarkupMenuManager();
+    this.db = new IndexedDatabase();
+    this.markupMenuManager = new MarkupMenuManager(this.db);
     this.diseaseTreeManager = new DiseaseTreeManager(
       diseasesData,
-      "diagnosis-tree-container"
+      "diagnosis-tree-container",
+      this.db
     );
     this.#initTabs();
   }

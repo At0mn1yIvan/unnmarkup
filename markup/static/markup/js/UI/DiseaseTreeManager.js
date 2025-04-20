@@ -1,11 +1,14 @@
 export class DiseaseTreeManager {
+  #db;
   #diseases;
   #container;
 
-  constructor(diseasesData, containerId) {
+  constructor(diseasesData, containerId, IndexedDatabase) {
+    this.#db = IndexedDatabase;
     this.#container = document.getElementById(containerId);
     this.#diseases = diseasesData;  // Получаем JSON данные
     this.#render();
+    this.#initSaveButton();
   }
 
   // Основной метод для построения дерева
@@ -55,5 +58,33 @@ export class DiseaseTreeManager {
 
       parentElement.appendChild(li);
     }
+  }
+
+  // Получение выбранных диагнозов
+  #getSelectedDiagnoses() {
+    return Array.from(this.#container.querySelectorAll('input[name="diagnoses"]:checked'))
+      .map(checkbox => checkbox.value);
+  }
+
+  #initSaveButton() {
+    const saveBtn = document.getElementById("save-diagnoses-btn");
+    saveBtn.addEventListener("click", async (e) => {
+      const diagnoses = this.#getSelectedDiagnoses();
+
+      // localStorage.setItem("savedDiagnoses", JSON.stringify(diagnoses));
+
+      try {
+        await this.#db.open();
+        await this.#db.add("diagnoses", {data: diagnoses});
+      }
+      catch (error){
+        console.error("Ошибка сохранения диагнозов:", error);
+        alert("Ошибка сохранения диагнозов");
+      }
+
+      //Добавляем toast вниз экрана, что данные успешно сохранены
+      // При редиректе делаем автосейв данных
+      // Убираем актив с кнопки по нажатию.
+    });
   }
 }

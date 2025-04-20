@@ -70,10 +70,17 @@
                 </div>
               {% endfor %}
 
-              {% include "markup/markup_save_form.html" %}
+              {% comment %} {% include "markup/markup_save_form.html" %} {% endcomment %}
+              <button id="save-markup-btn" class="btn btn-primary w-100 mt-3">
+                Сохранить разметку
+              </button>
             </div>
             <div class="tab-pane fade" id="diagnosis-content" role="tabpanel">
-              {% include "markup/diseases_save_form.html" %}
+              {% comment %} {% include "markup/diseases_save_form.html" %} {% endcomment %}
+              <div id="diagnosis-tree-container"></div>
+              <button id="save-diagnoses-btn" class="btn btn-primary w-100 mt-3">
+                Сохранить диагнозы
+              </button>
             </div>
           </div>
         </div>
