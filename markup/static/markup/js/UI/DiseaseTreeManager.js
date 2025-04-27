@@ -1,10 +1,12 @@
+import { IndexedDatabase } from "../indexedDB/IndexedDatabase.js";
+
 export class DiseaseTreeManager {
-  #db;
+  //#db;
   #diseases;
   #container;
 
-  constructor(diseasesData, containerId, IndexedDatabase) {
-    this.#db = IndexedDatabase;
+  constructor(diseasesData, containerId) {
+    //this.#db = IndexedDatabase;
     this.#container = document.getElementById(containerId);
     this.#diseases = diseasesData;  // Получаем JSON данные
     this.#render();
@@ -60,22 +62,14 @@ export class DiseaseTreeManager {
     }
   }
 
-  // Получение выбранных диагнозов
-  #getSelectedDiagnoses() {
-    return Array.from(this.#container.querySelectorAll('input[name="diagnoses"]:checked'))
-      .map(checkbox => checkbox.value);
-  }
-
   #initSaveButton() {
     const saveBtn = document.getElementById("save-diagnoses-btn");
     saveBtn.addEventListener("click", async (e) => {
-      const diagnoses = this.#getSelectedDiagnoses();
-
-      // localStorage.setItem("savedDiagnoses", JSON.stringify(diagnoses));
+      const diagnoses = this.selectedDiagnoses;
 
       try {
-        await this.#db.open();
-        await this.#db.add("diagnoses", {data: diagnoses});
+        await IndexedDatabase.add("diagnoses", { data: diagnoses });
+        console.log("GetLatest:", await IndexedDatabase.getLatest("diagnoses"));
       }
       catch (error){
         console.error("Ошибка сохранения диагнозов:", error);
@@ -86,5 +80,11 @@ export class DiseaseTreeManager {
       // При редиректе делаем автосейв данных
       // Убираем актив с кнопки по нажатию.
     });
+  }
+
+  // Получение выбранных диагнозов
+  get selectedDiagnoses() {
+    return Array.from(this.#container.querySelectorAll('input[name="diagnoses"]:checked'))
+      .map(checkbox => checkbox.value);
   }
 }

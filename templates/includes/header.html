@@ -15,7 +15,7 @@
       >
         <span class="navbar-toggler-icon"></span>
       </div>
-      <a class="navbar-brand" href="{% url 'home' %}">
+      <a class="navbar-brand" href="{% url 'home' %}" data-save-before-nav>
         <img
           src="{% static 'images/unn_logo.png' %}"
           height="50"
@@ -31,6 +31,7 @@
             <a
               class="nav-link {% active_class m.url_name %}"
               href="{% url m.url_name %}"
+              data-save-before-nav
             >
               {{ m.title }}
             </a>
@@ -41,16 +42,17 @@
             <a
               class="nav-link {% active_class 'users:profile' %}"
               href="{% url 'users:profile' %}"
-              >{{ user.username }}</a
-            >
+              data-save-before-nav
+              >{{ user.username }}
+            </a>
           </li>
           <form id="logoutForm" method="post" action="{% url 'users:logout' %}">
             {% csrf_token %}
             <li class="nav-item">
               <a
+                id="logoutLink"
                 class="nav-link"
                 href="#"
-                onclick="document.getElementById('logoutForm').submit(); return false;"
                 >Выйти</a
               >
             </li>

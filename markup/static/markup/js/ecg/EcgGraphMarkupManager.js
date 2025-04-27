@@ -101,7 +101,7 @@ export class EcgGraphMarkupManager {
     const newMarkup = {
       x0: Math.round(x0),
       x1: Math.round(x1),
-      type: this.#uiManager.markupMenuManager.getActiveMarkup(),
+      type: this.#uiManager.markupMenuManager.activeMarkup,
     };
 
     if (newMarkup.type === "Noise") {
@@ -124,7 +124,6 @@ export class EcgGraphMarkupManager {
   }
 
   drawMarkups() {
-    console.log("Отрисовка");
     const markupGroup = this.#graphGroup.svg.select(".brush-markups");
     if (markupGroup.empty()) return;
 

@@ -1,14 +1,13 @@
 import { EcgGraphMarkupManager } from "../ecg/EcgGraphMarkupManager.js";
+import { IndexedDatabase } from "../indexedDB/IndexedDatabase.js";
 
 export class MarkupMenuManager {
-  #db;
+  //#db;
   #activeMarkup;
-  // #form;
 
-  constructor(IndexedDatabase) {
-    this.#db = IndexedDatabase;
+  constructor() {
+    //this.#db = IndexedDatabase;
     this.#activeMarkup = document.querySelector('input[name="markup-option"]:checked').value;
-    // this.#form = document.getElementById("markup-form");
     this.#initRadioButtons();
     this.#initSaveButton();
   }
@@ -21,15 +20,13 @@ export class MarkupMenuManager {
     });
   }
 
-  getActiveMarkup() {
-    return this.#activeMarkup;
-  }
 // TODO: Добавляем автосейв в локальное хранилище. При уходе со страницы автоматически сохраняем изменения локально.
   #initSaveButton() {
     const saveBtn = document.getElementById("save-markup-btn");
     saveBtn.addEventListener("click", async (e) => {
-      const markups = EcgGraphMarkupManager.getMarkups();
       
+      // const markups = EcgGraphMarkupManager.getMarkups();
+      const markups = this.markups;
       // имзенить тип уведомления
       if (markups.length < 6) {
         e.preventDefault();
@@ -47,9 +44,8 @@ export class MarkupMenuManager {
       //localStorage.setItem("savedMarkup", JSON.stringify(markups));
 
       try {
-        await this.#db.open();
-        await this.#db.add("markups", {data: markups});
-
+        await IndexedDatabase.add("markups", { data: markups });
+        console.log("GetLatest:", await IndexedDatabase.getLatest("markups"));
       }
       catch (error){
         console.error("Ошибка сохранения разметки:", error);
@@ -58,6 +54,14 @@ export class MarkupMenuManager {
       //Добавляем toast вниз экрана, что данные успешно сохранены
       // При редиректе делаем автосейв данных
     });
+  }
+
+  get activeMarkup() {
+    return this.#activeMarkup;
+  }
+
+  get markups() {
+    return EcgGraphMarkupManager.getMarkups();
   }
 
   // #initFormSubmit() {
