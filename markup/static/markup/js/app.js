@@ -1,8 +1,10 @@
 import { EcgGraphSynchronizer } from "./ecg/EcgGraphSynchronizer.js";
-import { createChartOptions } from "./config/chartOptions.js";
+import { createChartOptions } from "./config/ChartOptions.js";
 import { EcgGraphMarkupManager } from "./ecg/EcgGraphMarkupManager.js";
+import { IndexedDatabase } from "./indexedDB/IndexedDatabase.js";
+import { DiseaseTreeManager } from "./UI/DiseaseTreeManager.js";
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   try {
     const ecgData = JSON.parse(document.getElementById("ecgData").textContent);
     const ecgNames = JSON.parse(
@@ -11,11 +13,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const diseasesData = JSON.parse(
       document.getElementById("diseasesData").textContent
     );
-    const markups = JSON.parse(document.getElementById("markups").textContent);
+    const markupsNN = JSON.parse(document.getElementById("markups").textContent);
 
     const options = createChartOptions(ecgData);
 
-    EcgGraphMarkupManager.loadMarkups(markups);
+    const markupsIndexedDB = await IndexedDatabase.getLatest("markups"); 
+    const diagnosesIndexedDB = await IndexedDatabase.getLatest("diagnoses");
+
+    if (!markupsIndexedDB) {
+      EcgGraphMarkupManager.loadMarkups(markupsNN);
+    }
+    else {
+      EcgGraphMarkupManager.loadMarkups(markupsIndexedDB.data);
+    }
+    
+    if (diagnosesIndexedDB) {
+      DiseaseTreeManager.loadSelectedDiagnoses(diagnosesIndexedDB.data);
+    }
 
     new EcgGraphSynchronizer(
       "left-column",

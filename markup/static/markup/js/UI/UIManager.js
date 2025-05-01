@@ -4,19 +4,17 @@ import { IndexedDatabase } from "../indexedDB/IndexedDatabase.js";
 
 
 export class UIManager {
-  //db;
   markupMenuManager;
   diseaseTreeManager;
+  static isLoggingOut = false;
 
   constructor(diseasesData) {
-    // this.db = new IndexedDatabase();
     this.markupMenuManager = new MarkupMenuManager();
     this.diseaseTreeManager = new DiseaseTreeManager(
       diseasesData,
       "diagnosis-tree-container",
     );
 
-    this.#initLogoutClearDB();
     this.#initAutoSaveDB();
     this.#initTabs();
   }
@@ -42,18 +40,7 @@ export class UIManager {
     });
   }
 
-  #initLogoutClearDB() {
-    // Привязка функционала очистки локальной БД к форме выхода из профиля
-    const logoutLink = document.getElementById("logoutLink");
-    logoutLink.addEventListener("click", async (e) => {
-      e.preventDefault();
-      if (!(await IndexedDatabase.clearWithConfirm())) return;
 
-      const form = document.getElementById("logoutForm");
-      form.submit();
-    });
-  }
-  //Почему при переходе на страницу разметки меняется url для выхода из профиля. Узнать
   #initAutoSaveDB() {
     // 1. Перехват кликов по ссылкам (только для внутренней навигации при переходе
     // на другие вкладки сервиса со страницы разметки).
@@ -90,6 +77,8 @@ export class UIManager {
   }
 
   async #handlePageExit() {
+    if (UIManager.isLoggingOut) return;
+
     if (
       document.visibilityState === "hidden" ||
       event.type === "beforeunload"

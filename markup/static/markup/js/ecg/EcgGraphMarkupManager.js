@@ -5,7 +5,7 @@ export class EcgGraphMarkupManager {
     T: "green",
     Noise: "gray",
   };
-  static markups = [];
+  static #markups = [];
   #graphGroup;
   #uiManager;
   #brush;
@@ -15,7 +15,7 @@ export class EcgGraphMarkupManager {
     this.#uiManager = uiManager;
     this.#initBrush();
 
-    if (EcgGraphMarkupManager.markups.length > 0) {
+    if (EcgGraphMarkupManager.#markups.length > 0) {
       // Если нейросеть предсказала данные- отрисовываем их сразу.
       this.drawMarkups();
     }
@@ -48,7 +48,7 @@ export class EcgGraphMarkupManager {
   }
 
   #hasForbiddenOverlap(newMarkup, currentMarkup = null) {
-    return EcgGraphMarkupManager.markups.some(existing => {
+    return EcgGraphMarkupManager.#markups.some(existing => {
       if (existing === currentMarkup) return false;
       // 1. Проверка полного перекрытия (любые типы)
       const isFullOverlap =
@@ -82,13 +82,13 @@ export class EcgGraphMarkupManager {
   }
 
   #applyNoiseMarkup(newNoiseMarkup) {
-    EcgGraphMarkupManager.markups = EcgGraphMarkupManager.markups
+    EcgGraphMarkupManager.#markups = EcgGraphMarkupManager.#markups
       .filter(markup =>
         markup.x1 < newNoiseMarkup.x0 ||
         markup.x0 > newNoiseMarkup.x1
       );
 
-    EcgGraphMarkupManager.markups.push(newNoiseMarkup);
+    EcgGraphMarkupManager.#markups.push(newNoiseMarkup);
     this.#triggerMarkChange();
   }
 
@@ -114,7 +114,7 @@ export class EcgGraphMarkupManager {
       return;
     }
 
-    EcgGraphMarkupManager.markups.push(newMarkup);
+    EcgGraphMarkupManager.#markups.push(newMarkup);
     this.#triggerMarkChange();
   }
 
@@ -129,7 +129,7 @@ export class EcgGraphMarkupManager {
 
     markupGroup
       .selectAll("rect")
-      .data(EcgGraphMarkupManager.markups, (d) => `${d.x0}-${d.x1}-${d.type}`)
+      .data(EcgGraphMarkupManager.#markups, (d) => `${d.x0}-${d.x1}-${d.type}`)
       .join(
         (enter) =>
           enter
@@ -154,7 +154,7 @@ export class EcgGraphMarkupManager {
 
   #removeMarkup(event, markup) {
     event.preventDefault();
-    EcgGraphMarkupManager.markups = EcgGraphMarkupManager.markups.filter(
+    EcgGraphMarkupManager.#markups = EcgGraphMarkupManager.#markups.filter(
       (m) => m !== markup
     );
     this.#triggerMarkChange();
@@ -219,10 +219,10 @@ export class EcgGraphMarkupManager {
   }
 
   static getMarkups() {
-    return EcgGraphMarkupManager.markups;
+    return EcgGraphMarkupManager.#markups;
   }
 
   static loadMarkups(markups) {
-    EcgGraphMarkupManager.markups = markups;
+    EcgGraphMarkupManager.#markups = markups;
   }
 }

@@ -1,16 +1,21 @@
 import { IndexedDatabase } from "../indexedDB/IndexedDatabase.js";
 
 export class DiseaseTreeManager {
-  //#db;
-  #diseases;
+  #diseasesJSON;
   #container;
+  static #diagnoses = [];
 
   constructor(diseasesData, containerId) {
-    //this.#db = IndexedDatabase;
     this.#container = document.getElementById(containerId);
-    this.#diseases = diseasesData;  // Получаем JSON данные
+    this.#diseasesJSON = diseasesData;  // Получаем JSON данные
+
     this.#render();
     this.#initSaveButton();
+    this.#initCheckboxHandler();
+
+    if (DiseaseTreeManager.#diagnoses.length > 0) {
+      this.#restoreSelectedDiagnoses();
+    }
   }
 
   // Основной метод для построения дерева
@@ -18,7 +23,7 @@ export class DiseaseTreeManager {
     this.#container.innerHTML = "";
     const ul = document.createElement("ul");
     ul.className = "list-group disease-tree";
-    this.#buildTree(this.#diseases, ul, null);
+    this.#buildTree(this.#diseasesJSON, ul, null);
     this.#container.appendChild(ul);
   }
 
@@ -82,9 +87,32 @@ export class DiseaseTreeManager {
     });
   }
 
+  #initCheckboxHandler() {
+    // Метод для установки поля #diagnoses при изменении выбранных чекбоксов
+    this.#container.addEventListener("change", (event) => {
+      if (event.target.matches('input[name="diagnoses"]')) {
+        DiseaseTreeManager.#diagnoses = Array.from(this.#container.querySelectorAll('input[name="diagnoses"]:checked'))
+        .map(checkbox => checkbox.value);;
+      }
+    });
+  }
+
+  #restoreSelectedDiagnoses() {
+    const savedSet = new Set(DiseaseTreeManager.#diagnoses);
+    const checkboxes = this.#container.querySelectorAll('input[name="diagnoses"]');
+
+    checkboxes.forEach( checkbox => {
+      checkbox.checked = savedSet.has(checkbox.value);
+    });
+    
+  }
+
+  static loadSelectedDiagnoses(loadedDiagnoses) {
+    DiseaseTreeManager.#diagnoses = loadedDiagnoses;
+  }
+
   // Получение выбранных диагнозов
   get selectedDiagnoses() {
-    return Array.from(this.#container.querySelectorAll('input[name="diagnoses"]:checked'))
-      .map(checkbox => checkbox.value);
+    return DiseaseTreeManager.#diagnoses;
   }
 }

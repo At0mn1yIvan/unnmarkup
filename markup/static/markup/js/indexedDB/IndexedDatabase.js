@@ -45,7 +45,7 @@ export class IndexedDatabase {
     // Добавление данных в БД
     try {
       await this.#open();
-      console.log("состояние БД", this.#db);
+      
       return new Promise((resolve, reject) => {
         const transaction = this.#db.transaction(storeName, "readwrite");
         const store = transaction.objectStore(storeName);

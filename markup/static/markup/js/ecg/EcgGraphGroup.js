@@ -15,17 +15,41 @@ export class EcgGraphGroup {
     this.#dataGroup = dataGroup;
     this.chartNames = chartNames;
     this.#opts = opts;
-    this.#initGraphGroup(containerId);
+    //this.#opts.cellSize = this.#calculateCellSize();
+    this.#initGraphGroup();
+    //this.#setupResizeObserver();
   }
 
-  #initGraphGroup(containerId) {
+  // #calculateCellSize() {
+  //   const totalAvailableWidth = document.getElementById("charts-container").offsetWidth;
+  //   const singleGraphWidth = totalAvailableWidth / 2;
+  //   return Math.round(singleGraphWidth / this.#opts.gridWidth);
+  // }
+
+  // #setupResizeObserver() {
+  //   const resizeObserver = new ResizeObserver(() => {
+  //     this.#handleResize();
+  //   });
+  //   resizeObserver.observe(document.getElementById("charts-container"));
+  // }
+
+  // #handleResize() {
+  //   // Пересчитываем cellSize с новыми размерами контейнера
+  //   this.#opts.cellSize = this.#calculateCellSize();
+    
+  //   // Полностью перерисовываем график
+  //   this.#svg.selectAll("*").remove();
+  //   this.#initGraphGroup();
+  // }
+
+  #initGraphGroup() {
     this.#initSvg();
     this.#initScales();
-    this.#initClipPath(containerId);
+    this.#initClipPath(this.#container.id);
     this.#drawGrid();
     this.#initGraphs();
   }
-
+ 
   #initSvg() {
     const { cellSize, gridWidth, gridHeight } = this.#opts;
     const height = cellSize * gridHeight * this.#dataGroup.length;
@@ -71,8 +95,9 @@ export class EcgGraphGroup {
   }
 
   #initGraphs() {
+    const { cellSize, gridHeight } = this.#opts;
     this.#dataGroup.forEach((data, index) => {
-      const offsetY = index * this.#opts.cellSize * this.#opts.gridHeight;
+      const offsetY = index * cellSize * gridHeight;
       this.#graphs.push(
         new SingleEcgGraph(
           this.graphGroup,
@@ -85,6 +110,8 @@ export class EcgGraphGroup {
       );
     });
   }
+
+  
 
   #drawGrid() {
     const { cellSize, gridWidth, gridHeight } = this.#opts;
