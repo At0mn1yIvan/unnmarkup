@@ -30,7 +30,7 @@ export class SingleEcgGraph {
       .attr("class", "ecg-line")
       .attr("fill", "none")
       .attr("stroke", "blue")
-      .attr("stroke-width", 1.5);
+      .attr("stroke-width", 1.2);
 
     this.#lineGroup
       .append("text")
@@ -47,10 +47,12 @@ export class SingleEcgGraph {
       .attr("stroke-linejoin", "round")
       .text(this.#name);
 
-    this.#lineGenerator = (domainStart) => d3.line()
-      .x((d, i) => this.#xScale(i + domainStart))
-      .y((d) => this.#yScale(d))
-      .curve(d3.curveLinear);
+    this.#lineGenerator = (domainStart) =>
+      d3
+        .line()
+        .x((d, i) => this.#xScale(i + domainStart))
+        .y((d) => this.#yScale(d))
+        .curve(d3.curveLinear);
 
     this.updateGraph();
   }
@@ -61,6 +63,8 @@ export class SingleEcgGraph {
       Math.floor(domainStart),
       Math.ceil(domainEnd)
     );
-    this.#linePath.datum(visibleData).attr("d", this.#lineGenerator(domainStart));
+    this.#linePath
+      .datum(visibleData)
+      .attr("d", this.#lineGenerator(domainStart));
   }
 }

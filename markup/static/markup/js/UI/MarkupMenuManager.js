@@ -38,9 +38,6 @@ export class MarkupMenuManager {
         return a.x0 - b.x0;
       });
 
-      //localStorage.setItem("savedMarkup", JSON.stringify(markups, null, 2));
-      //localStorage.setItem("savedMarkup", JSON.stringify(markups));
-
       try {
         await IndexedDatabase.add("markups", { data: markups });
         console.log("GetLatest:", await IndexedDatabase.getLatest("markups"));

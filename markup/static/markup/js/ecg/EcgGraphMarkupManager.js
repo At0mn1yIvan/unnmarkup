@@ -41,14 +41,20 @@ export class EcgGraphMarkupManager {
   }
 
   #getSvgDimensions() {
+    // return {
+    //   width: Number(this.#graphGroup.svg.attr("width")),
+    //   height: Number(this.#graphGroup.svg.attr("height")),
+    // };
+    const node = this.#graphGroup.svg.node();
+    const rect = node.getBoundingClientRect();
     return {
-      width: Number(this.#graphGroup.svg.attr("width")),
-      height: Number(this.#graphGroup.svg.attr("height")),
+      width: rect.width,
+      height: rect.height,
     };
   }
 
   #hasForbiddenOverlap(newMarkup, currentMarkup = null) {
-    return EcgGraphMarkupManager.#markups.some(existing => {
+    return EcgGraphMarkupManager.#markups.some((existing) => {
       if (existing === currentMarkup) return false;
       // 1. Проверка полного перекрытия (любые типы)
       const isFullOverlap =
@@ -72,21 +78,23 @@ export class EcgGraphMarkupManager {
   }
 
   #showOverlapWarning() {
-    const warning = this.#graphGroup.svg.append("rect")
+    this.#graphGroup.svg
+      .append("rect")
       .attr("class", "overlap-warning")
       .attr("x", 0)
       .attr("width", "100%")
       .attr("height", "100%")
       .style("fill", "rgba(255,0,0,0.1)")
-      .transition().duration(250).style("opacity", 0).remove();
+      .transition()
+      .duration(250)
+      .style("opacity", 0)
+      .remove();
   }
 
   #applyNoiseMarkup(newNoiseMarkup) {
-    EcgGraphMarkupManager.#markups = EcgGraphMarkupManager.#markups
-      .filter(markup =>
-        markup.x1 < newNoiseMarkup.x0 ||
-        markup.x0 > newNoiseMarkup.x1
-      );
+    EcgGraphMarkupManager.#markups = EcgGraphMarkupManager.#markups.filter(
+      (markup) => markup.x1 < newNoiseMarkup.x0 || markup.x0 > newNoiseMarkup.x1
+    );
 
     EcgGraphMarkupManager.#markups.push(newNoiseMarkup);
     this.#triggerMarkChange();
@@ -99,8 +107,8 @@ export class EcgGraphMarkupManager {
     const [x0, x1] = selection.map(this.#graphGroup.xScale.invert);
     this.#graphGroup.svg.select(".brush").call(d3.brushX().move, null);
     const newMarkup = {
-      x0: Math.round(x0),
-      x1: Math.round(x1),
+      x0: Math.max(0, Math.round(x0)),
+      x1: Math.min(this.#graphGroup.dataGroup[0].length - 1, Math.round(x1)),
       type: this.#uiManager.markupMenuManager.activeMarkup,
     };
 
@@ -124,6 +132,7 @@ export class EcgGraphMarkupManager {
   }
 
   drawMarkups() {
+    const { width, height } = this.#getSvgDimensions();
     const markupGroup = this.#graphGroup.svg.select(".brush-markups");
     if (markupGroup.empty()) return;
 
@@ -135,21 +144,31 @@ export class EcgGraphMarkupManager {
           enter
             .append("rect")
             .attr("y", 0)
-            .attr("height", this.#graphGroup.svg.attr("height"))
+            .attr("height", height)
             .attr("fill", (d) => EcgGraphMarkupManager.colorMap[d.type])
             .attr("stroke", "black")
             .attr("stroke-width", 3)
             .attr("opacity", 0.4)
+            .attr("x", (d) => this.#graphGroup.xScale(d.x0))
+            .attr(
+              "width",
+              (d) =>
+                this.#graphGroup.xScale(d.x1) - this.#graphGroup.xScale(d.x0)
+            )
             .on("contextmenu", (event, d) => this.#removeMarkup(event, d))
             .on("mousedown", (event, d) => this.#handleResizeStart(event, d)),
-        (update) => update,
+        (update) =>
+          update
+            .attr("x", (d) => this.#graphGroup.xScale(d.x0))
+            .attr(
+              "width",
+              (d) =>
+                this.#graphGroup.xScale(d.x1) - this.#graphGroup.xScale(d.x0)
+            ),
         (exit) => exit.remove()
-      )
-      .attr("x", (d) => this.#graphGroup.xScale(d.x0))
-      .attr(
-        "width",
-        (d) => this.#graphGroup.xScale(d.x1) - this.#graphGroup.xScale(d.x0)
       );
+    // .attr("x", (d) => this.#graphGroup.xScale(d.x0))
+    // .attr("width", (d) => this.#graphGroup.xScale(d.x1) - this.#graphGroup.xScale(d.x0));
   }
 
   #removeMarkup(event, markup) {
@@ -170,8 +189,8 @@ export class EcgGraphMarkupManager {
       Math.abs(mouseX - xScale(markup.x0)) < 20
         ? "left"
         : Math.abs(mouseX - xScale(markup.x1)) < 20
-          ? "right"
-          : null;
+        ? "right"
+        : null;
     if (!resizeType) return;
 
     const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
@@ -181,23 +200,22 @@ export class EcgGraphMarkupManager {
       const newX = clamp(
         xScale.invert(d3.pointer(e, this.#graphGroup.svg.node())[0]),
         0,
-        this.#graphGroup.dataGroup[0].length
+        this.#graphGroup.dataGroup[0].length - 1
       );
 
       const newValues = {
         x0: resizeType === "left" ? newX : markup.x0,
         x1: resizeType === "right" ? newX : markup.x1,
-        type: markup.type
-      }
+        type: markup.type,
+      };
 
-      isValidResize = !this.#hasForbiddenOverlap(
-        newValues,
-        markup
-      );
+      isValidResize = !this.#hasForbiddenOverlap(newValues, markup);
 
       if (isValidResize) {
-        if (resizeType === "left") markup.x0 = Math.round(Math.min(newX, markup.x1 - 1));
-        if (resizeType === "right") markup.x1 = Math.round(Math.max(newX, markup.x0 + 1));
+        if (resizeType === "left")
+          markup.x0 = Math.round(Math.min(newX, markup.x1 - 1));
+        if (resizeType === "right")
+          markup.x1 = Math.round(Math.max(newX, markup.x0 + 1));
         requestAnimationFrame(() => {
           this.#triggerMarkChange();
         });

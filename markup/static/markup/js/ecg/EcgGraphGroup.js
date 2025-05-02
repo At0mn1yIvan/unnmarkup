@@ -15,32 +15,15 @@ export class EcgGraphGroup {
     this.#dataGroup = dataGroup;
     this.chartNames = chartNames;
     this.#opts = opts;
-    //this.#opts.cellSize = this.#calculateCellSize();
+    this.#opts.cellSize = this.#calculateCellSize();
     this.#initGraphGroup();
-    //this.#setupResizeObserver();
   }
 
-  // #calculateCellSize() {
-  //   const totalAvailableWidth = document.getElementById("charts-container").offsetWidth;
-  //   const singleGraphWidth = totalAvailableWidth / 2;
-  //   return Math.round(singleGraphWidth / this.#opts.gridWidth);
-  // }
-
-  // #setupResizeObserver() {
-  //   const resizeObserver = new ResizeObserver(() => {
-  //     this.#handleResize();
-  //   });
-  //   resizeObserver.observe(document.getElementById("charts-container"));
-  // }
-
-  // #handleResize() {
-  //   // Пересчитываем cellSize с новыми размерами контейнера
-  //   this.#opts.cellSize = this.#calculateCellSize();
-    
-  //   // Полностью перерисовываем график
-  //   this.#svg.selectAll("*").remove();
-  //   this.#initGraphGroup();
-  // }
+  #calculateCellSize() {
+    const containerWidth = this.#container.clientWidth;
+    console.log(this.#container.id, containerWidth);
+    return Math.floor(containerWidth / this.#opts.gridWidth);
+  }
 
   #initGraphGroup() {
     this.#initSvg();
@@ -49,7 +32,7 @@ export class EcgGraphGroup {
     this.#drawGrid();
     this.#initGraphs();
   }
- 
+
   #initSvg() {
     const { cellSize, gridWidth, gridHeight } = this.#opts;
     const height = cellSize * gridHeight * this.#dataGroup.length;
@@ -57,8 +40,10 @@ export class EcgGraphGroup {
     this.#svg = d3
       .select(this.#container)
       .append("svg")
-      .attr("width", cellSize * gridWidth)
-      .attr("height", height)
+      .attr("width", "100%")
+      .attr("height", "100%")
+      // .attr("width", cellSize * gridWidth)
+      // .attr("height", height)
       .attr("viewBox", `0 0 ${cellSize * gridWidth} ${height}`);
   }
 
@@ -110,8 +95,6 @@ export class EcgGraphGroup {
       );
     });
   }
-
-  
 
   #drawGrid() {
     const { cellSize, gridWidth, gridHeight } = this.#opts;
