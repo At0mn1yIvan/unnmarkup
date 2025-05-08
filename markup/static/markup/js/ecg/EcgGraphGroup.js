@@ -21,7 +21,6 @@ export class EcgGraphGroup {
 
   #calculateCellSize() {
     const containerWidth = this.#container.clientWidth;
-    console.log(this.#container.id, containerWidth);
     return Math.floor(containerWidth / this.#opts.gridWidth);
   }
 

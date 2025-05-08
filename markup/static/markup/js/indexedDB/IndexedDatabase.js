@@ -148,9 +148,7 @@ export class IndexedDatabase {
 
   static async #deleteDatabase() {
     if (this.#db) {
-      console.log("До закрытия: ", this.#db.readyState);
       this.#db.close();
-      console.log("После закрытия: ", this.#db.readyState);
       this.#db = null;
     }
 
