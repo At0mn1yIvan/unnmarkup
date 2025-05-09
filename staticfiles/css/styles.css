@@ -82,3 +82,18 @@
   border: 2px solid #a7aeb7;
   overflow: hidden;
 }
+
+
+#submit-validation-btn,
+#save-markup-btn,
+#save-diagnoses-btn {
+  font-weight: 600;
+  font-size: 1.15rem;
+  transition: transform 0.1s;
+}
+
+#submit-validation-btn:hover,
+#save-markup-btn:hover,
+#save-diagnoses-btn:hover {
+  transform: scale(1.02);
+}

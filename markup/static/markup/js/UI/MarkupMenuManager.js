@@ -5,27 +5,28 @@ export class MarkupMenuManager {
   #activeMarkup;
 
   constructor() {
-    this.#activeMarkup = document.querySelector('input[name="markup-option"]:checked').value;
+    this.#activeMarkup = document.querySelector(
+      'input[name="markup-option"]:checked'
+    ).value;
     this.#initRadioButtons();
     this.#initSaveButton();
   }
 
   #initRadioButtons() {
-    document.querySelectorAll('input[name="markup-option"]').forEach(radio => {
-      radio.addEventListener("change", (event) => {
-        this.#activeMarkup = event.target.value;
+    document
+      .querySelectorAll('input[name="markup-option"]')
+      .forEach((radio) => {
+        radio.addEventListener("change", (event) => {
+          this.#activeMarkup = event.target.value;
+        });
       });
-    });
   }
 
-// TODO: Добавляем автосейв в локальное хранилище. При уходе со страницы автоматически сохраняем изменения локально.
   #initSaveButton() {
     const saveBtn = document.getElementById("save-markup-btn");
+    if (!saveBtn) return;
     saveBtn.addEventListener("click", async (e) => {
-      
-      // const markups = EcgGraphMarkupManager.getMarkups();
       const markups = this.markups;
-      // имзенить тип уведомления
       if (markups.length < 6) {
         e.preventDefault();
         //TODO: добавляем красивый toast с алертом
@@ -41,8 +42,7 @@ export class MarkupMenuManager {
       try {
         await IndexedDatabase.add("markups", { data: markups });
         console.log("GetLatest:", await IndexedDatabase.getLatest("markups"));
-      }
-      catch (error){
+      } catch (error) {
         console.error("Ошибка сохранения разметки:", error);
         alert("Ошибка сохранения разметки");
       }

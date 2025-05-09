@@ -1,8 +1,8 @@
 import json
 from typing import Optional
-from django.core.management.base import BaseCommand
 
-from markup.models import Diseases
+from django.core.management.base import BaseCommand
+from markup.models import Diagnose
 
 
 class Command(BaseCommand):
@@ -18,7 +18,7 @@ class Command(BaseCommand):
     def fill_data(self, data: dict[str, Optional[dict]], parent=None) -> None:
         for name, children in data.items():
 
-            disease = Diseases.objects.create(name=name, parent=parent)
+            disease = Diagnose.objects.create(name=name, parent=parent)
 
             if children:
                 self.fill_data(children, disease)

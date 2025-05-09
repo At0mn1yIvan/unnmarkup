@@ -7,7 +7,7 @@ export class DiseaseTreeManager {
 
   constructor(diseasesData, containerId) {
     this.#container = document.getElementById(containerId);
-    this.#diseasesJSON = diseasesData;  // Получаем JSON данные
+    this.#diseasesJSON = diseasesData; // Получаем JSON данные
 
     this.#render();
     this.#initSaveButton();
@@ -31,7 +31,7 @@ export class DiseaseTreeManager {
   #buildTree(nodes, parentElement, parentName) {
     for (const [name, children] of Object.entries(nodes)) {
       const li = document.createElement("li");
-      li.className = "list-group-item border-0 p-0 mb-1"; 
+      li.className = "list-group-item border-0 p-0 mb-1";
 
       if (children === null) {
         let hierarchy = [parentName, name].join(" | ");
@@ -42,9 +42,9 @@ export class DiseaseTreeManager {
                    type="checkbox" 
                    name="diagnoses" 
                    value="${hierarchy}"
-                   id="diag-${hierarchy.replace(/\s+\|\s+/g, '-')}">
+                   id="diag-${hierarchy.replace(/\s+\|\s+/g, "-")}">
             <label class="form-check-label text-dark" 
-                   for="diag-${hierarchy.replace(/\s+\|\s+/g, '-')}">
+                   for="diag-${hierarchy.replace(/\s+\|\s+/g, "-")}">
               ${name}
             </label>
           </div>  
@@ -69,14 +69,14 @@ export class DiseaseTreeManager {
 
   #initSaveButton() {
     const saveBtn = document.getElementById("save-diagnoses-btn");
+    if (!saveBtn) return;
     saveBtn.addEventListener("click", async (e) => {
       const diagnoses = this.selectedDiagnoses;
 
       try {
         await IndexedDatabase.add("diagnoses", { data: diagnoses });
         console.log("GetLatest:", await IndexedDatabase.getLatest("diagnoses"));
-      }
-      catch (error){
+      } catch (error) {
         console.error("Ошибка сохранения диагнозов:", error);
         alert("Ошибка сохранения диагнозов");
       }
@@ -91,20 +91,22 @@ export class DiseaseTreeManager {
     // Метод для установки поля #diagnoses при изменении выбранных чекбоксов
     this.#container.addEventListener("change", (event) => {
       if (event.target.matches('input[name="diagnoses"]')) {
-        DiseaseTreeManager.#diagnoses = Array.from(this.#container.querySelectorAll('input[name="diagnoses"]:checked'))
-        .map(checkbox => checkbox.value);;
+        DiseaseTreeManager.#diagnoses = Array.from(
+          this.#container.querySelectorAll('input[name="diagnoses"]:checked')
+        ).map((checkbox) => checkbox.value);
       }
     });
   }
 
   #restoreSelectedDiagnoses() {
     const savedSet = new Set(DiseaseTreeManager.#diagnoses);
-    const checkboxes = this.#container.querySelectorAll('input[name="diagnoses"]');
+    const checkboxes = this.#container.querySelectorAll(
+      'input[name="diagnoses"]'
+    );
 
-    checkboxes.forEach( checkbox => {
+    checkboxes.forEach((checkbox) => {
       checkbox.checked = savedSet.has(checkbox.value);
     });
-    
   }
 
   static loadSelectedDiagnoses(loadedDiagnoses) {

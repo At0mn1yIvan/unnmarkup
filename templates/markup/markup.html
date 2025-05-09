@@ -21,10 +21,10 @@
     <div class="col-3 position-sticky end-0">
       <div class="card">
         <div class="card-header p-0">
-          <ul class="nav nav-tabs" id="myTab" role="tablist">
-            <li class="nav-item" role="presentation">
+          <ul class="d-flex nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item flex-grow-1" role="presentation" style="flex-basis: 0;">
               <button
-                class="nav-link active"
+                class="nav-link active w-100"
                 id="markup-tab"
                 data-bs-toggle="tab"
                 data-bs-target="#markup-content"
@@ -34,9 +34,9 @@
                 Разметка
               </button>
             </li>
-            <li class="nav-item" role="presentation">
+            <li class="nav-item flex-grow-1" role="presentation" style="flex-basis: 0;">
               <button
-                class="nav-link"
+                class="nav-link w-100"
                 id="diagnosis-tab"
                 data-bs-toggle="tab"
                 data-bs-target="#diagnosis-content"
@@ -62,8 +62,8 @@
                     value="{{ item.value }}"
                     {% if forloop.first %}checked{% endif %}
                   />
-                  <label class="form-check-label" for="{{ item.value }}-option">
-                    <span style="color: {{ item.color }}; font-weight: bold">
+                  <label class="form-check-label d-flex align-items-center" for="{{ item.value }}-option">
+                    <span style="color: {{ item.color }}; font-weight: 600">
                       {{ item.value }}
                     </span>
                   </label>
@@ -71,7 +71,7 @@
               {% endfor %}
 
               {% comment %} {% include "markup/markup_save_form.html" %} {% endcomment %}
-              <button id="save-markup-btn" class="btn btn-primary w-100 mt-3">
+              <button id="save-markup-btn" class="btn btn-primary w-100 mt-3"> 
                 Сохранить разметку
               </button>
             </div>
@@ -83,6 +83,20 @@
               </button>
             </div>
           </div>
+        </div>
+        <div class="card-footer bg-transparent">
+          <form id="validation-form" method="post" action="{% url 'markup:submit_validation' %}">
+            {% csrf_token %}
+            <input type="hidden" id="markup-data" name="markup_data">
+            <input type="hidden" id="diagnoses-data" name="diagnoses_data">
+            <button 
+              type="button" 
+              id="submit-validation-btn" 
+              class="btn btn-success w-100"
+            >
+              Отправить на валидацию
+            </button>
+          </form>
         </div>
       </div>
     </div>

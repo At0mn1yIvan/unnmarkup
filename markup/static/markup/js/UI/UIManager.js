@@ -2,7 +2,6 @@ import { MarkupMenuManager } from "../UI/MarkupMenuManager.js";
 import { DiseaseTreeManager } from "../UI/DiseaseTreeManager.js";
 import { IndexedDatabase } from "../indexedDB/IndexedDatabase.js";
 
-
 export class UIManager {
   markupMenuManager;
   diseaseTreeManager;
@@ -12,34 +11,51 @@ export class UIManager {
     this.markupMenuManager = new MarkupMenuManager();
     this.diseaseTreeManager = new DiseaseTreeManager(
       diseasesData,
-      "diagnosis-tree-container",
+      "diagnosis-tree-container"
     );
 
     this.#initAutoSaveDB();
-    this.#initTabs();
+    this.#initValidationButton();
   }
 
-  // Инициализация вкладок
-  #initTabs() {
-    const tabButtons = document.querySelectorAll(".tab-button");
-    const tabContents = document.querySelectorAll(".tab-content");
+  #initValidationButton() {
+    const submitBtn = document.getElementById("submit-validation-btn");
+    if (!submitBtn) return;
 
-    tabButtons.forEach((button) => {
-      button.addEventListener("click", () => {
-        const activeTab = button.dataset.tab;
+    submitBtn.addEventListener("click", async () => {
+      // меняем на красивую плашку.
+      const isConfirmed = confirm(
+        "Вы уверены, что хотите отправить данные? После отправки отредактировать разметку будет невозможно"
+      );
+      if (!isConfirmed) return;
 
-        // Убираем активный класс у всех кнопок
-        tabButtons.forEach((btn) => btn.classList.remove("active"));
-        // Показываем только выбранную вкладку
-        tabContents.forEach((content) => (content.style.display = "none"));
+      try {
+        const [savedMarkups, savedDiagnoses] = await Promise.all([
+          IndexedDatabase.getLatest("markups"),
+          IndexedDatabase.getLatest("diagnoses"),
+        ]);
 
-        // Активируем выбранную кнопку и вкладку
-        button.classList.add("active");
-        document.getElementById(`${activeTab}-content`).style.display = "block";
-      });
+        const markups = savedMarkups?.data || this.markupMenuManager.markups;
+        const diagnoses =
+          savedDiagnoses?.data || this.diseaseTreeManager.selectedDiagnoses;
+
+        if (markups.length < 6) {
+          // проверяем только длину разметки, так как диагнозы к разметке не обязательны
+          alert("Недостаточно данных для отправки!");
+          return;
+        }
+
+        document.getElementById("markup-data").value = JSON.stringify(markups);
+        document.getElementById("diagnoses-data").value =
+          JSON.stringify(diagnoses);
+
+        document.getElementById("validation-form").submit();
+      } catch (error) {
+        console.error("Ошибка отправки:", error);
+        alert("Ошибка при подготовке данных к отправке");
+      }
     });
   }
-
 
   #initAutoSaveDB() {
     // 1. Перехват кликов по ссылкам (только для внутренней навигации при переходе

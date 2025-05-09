@@ -13,20 +13,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     const diseasesData = JSON.parse(
       document.getElementById("diseasesData").textContent
     );
-    const markupsNN = JSON.parse(document.getElementById("markups").textContent);
+    const markupsNN = JSON.parse(
+      document.getElementById("markups").textContent
+    );
 
     const options = createChartOptions(ecgData);
 
-    const markupsIndexedDB = await IndexedDatabase.getLatest("markups"); 
+    const markupsIndexedDB = await IndexedDatabase.getLatest("markups");
     const diagnosesIndexedDB = await IndexedDatabase.getLatest("diagnoses");
 
     if (!markupsIndexedDB) {
       EcgGraphMarkupManager.loadMarkups(markupsNN);
-    }
-    else {
+    } else {
       EcgGraphMarkupManager.loadMarkups(markupsIndexedDB.data);
     }
-    
+
     if (diagnosesIndexedDB) {
       DiseaseTreeManager.loadSelectedDiagnoses(diagnosesIndexedDB.data);
     }
