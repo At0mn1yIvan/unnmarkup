@@ -12,15 +12,18 @@
   box-shadow: none !important;
 }
 
+/* Выбранные чекбоксы */
 .disease-tree .form-check-input:checked {
   background-color: #4a6bdf;
   border-color: #4a6bdf !important;
 }
 
+/* Наведение на чекбоксы */
 .disease-tree .form-check-input:focus {
   box-shadow: 0 0 0 0.2rem rgba(74, 107, 223, 0.25) !important;
 }
 
+/* Лейблы в дереве диагнозов */
 .disease-tree .form-check-label {
   cursor: pointer;
   color: #333;
@@ -83,7 +86,7 @@
   overflow: hidden;
 }
 
-
+/* Кнопки сохранения разметки, диагнозов и для отправки на валидацию */
 #submit-validation-btn,
 #save-markup-btn,
 #save-diagnoses-btn {
@@ -92,6 +95,7 @@
   transition: transform 0.1s;
 }
 
+/* Эффект при наведении для кнопок сохранения разметки, диагнозов и для отправки на валидацию */
 #submit-validation-btn:hover,
 #save-markup-btn:hover,
 #save-diagnoses-btn:hover {

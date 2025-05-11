@@ -2,19 +2,57 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.forms import ValidationError
 
 
-# Внести изменения в обязательность поля
 class User(AbstractUser):
     ROLES = (
-        ('user_marker', 'Маркировщик'),
-        ('user_validator', 'Валидатор'),
-        ('user_supplier', 'Поставщик данных'),
+        ("user_marker", "Маркировщик"),
+        ("user_validator", "Валидатор"),
+        ("user_supplier", "Поставщик данных"),
     )
 
-    patronymic = models.CharField('Отчество', max_length=50, blank=True)
-    phone = models.CharField('Телефон', max_length=20, unique=True)
-    role = models.CharField('Роль', max_length=20, choices=ROLES)
+    first_name = models.CharField("Имя", max_length=150, blank=False)
+    last_name = models.CharField("Фамилия", max_length=150, blank=False)
+    patronymic = models.CharField("Отчество", max_length=50, blank=True)
+    phone = models.CharField(
+        "Телефон", max_length=20, unique=True, blank=False, null=False
+    )
+    role = models.CharField(
+        "Роль", max_length=20, choices=ROLES, blank=True, null=True
+    )
+
+    class Meta:
+        verbose_name = "Пользователь"
+        verbose_name_plural = "Пользователи"
+        constraints = [
+            models.CheckConstraint(
+                check=(
+                    models.Q(
+                        role__in=[
+                            "user_marker",
+                            "user_validator",
+                            "user_supplier",
+                        ]
+                    )
+                    | models.Q(role__isnull=True, is_superuser=True)
+                ),
+                name="role_required_unless_superuser",
+            )
+        ]
+
+    def clean(self):
+        super().clean()
+        if not self.is_superuser and not self.role:
+            raise ValidationError(
+                {"role": "Роль обязательна для обычных пользователей"}
+            )
+
+    def get_full_name(self):
+        full_name = f"{self.last_name} {self.first_name}"
+        if self.patronymic:
+            full_name += f" {self.patronymic}"
+        return full_name.strip()
 
     def __str__(self):
         return self.get_full_name()
@@ -24,8 +62,8 @@ class MarkerProfile(models.Model):
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
-        related_name='marker_profile',
-        limit_choices_to={'role': 'user_marker'}
+        related_name="marker_profile",
+        limit_choices_to={"role": "user_marker"},
     )
 
 
@@ -33,8 +71,8 @@ class ValidatorProfile(models.Model):
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
-        related_name='validator_profile',
-        limit_choices_to={'role': 'user_validator'}
+        related_name="validator_profile",
+        limit_choices_to={"role": "user_validator"},
     )
 
 
@@ -42,29 +80,16 @@ class SupplierProfile(models.Model):
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
-        related_name='supplier_profile',
-        limit_choices_to={'role': 'user_supplier'}
+        related_name="supplier_profile",
+        limit_choices_to={"role": "user_supplier"},
     )
 
 
-# Сигналы для автоматического создания профилей
 @receiver(post_save, sender=User)
 def create_profile(sender, instance, created, **kwargs):
-    if created:
-        if instance.role == 'user_marker':
-            MarkerProfile.objects.create(user=instance)
-        elif instance.role == 'user_validator':
-            ValidatorProfile.objects.create(user=instance)
-        elif instance.role == 'user_supplier':
-            SupplierProfile.objects.create(user=instance)
-
-
-# Зачем?
-@receiver(post_save, sender=User)
-def save_profile(sender, instance, **kwargs):
-    if hasattr(instance, 'marker_profile'):
-        instance.marker_profile.save()
-    elif hasattr(instance, 'validator_profile'):
-        instance.validator_profile.save()
-    elif hasattr(instance, 'supplier_profile'):
-        instance.supplier_profile.save()
+    if created and instance.role:
+        {
+            "user_marker": MarkerProfile,
+            "user_validator": ValidatorProfile,
+            "user_supplier": SupplierProfile
+        }.get(instance.role).objects.create(user=instance)

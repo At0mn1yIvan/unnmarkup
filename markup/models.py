@@ -2,10 +2,13 @@ from django.db import models
 from users.models import MarkerProfile, SupplierProfile, ValidatorProfile
 
 
-class Diagnose(models.Model):
+class Diagnosis(models.Model):
+    # TODO: В будущем можно переписать парсер
+    # болезней и парсить ID болезни из МКБ-10 по номеру.
+
     name = models.CharField(max_length=255, null=False)
     parent = models.ForeignKey(
-        "self", on_delete=models.CASCADE, null=True, blank=True, db_index=True
+        "self", on_delete=models.CASCADE, null=True, db_index=True
     )
 
     class Meta:
@@ -68,13 +71,13 @@ class Markup(models.Model):
     )
     markup_data = models.JSONField("Данные разметки")
     diagnoses = models.ManyToManyField(
-        Diagnose, related_name="markups", verbose_name="Диагнозы"
+        Diagnosis, related_name="markups", verbose_name="Диагнозы"
     )
     status = models.CharField(
         "Статус", max_length=20, choices=STATUS_CHOICES, default="draft"
     )
     created_at = models.DateTimeField("Дата создания", auto_now_add=True)
-    # добавить updated_at
+    updated_at = models.DateTimeField("Дата обновления", auto_now=True)
 
     class Meta:
         verbose_name = "Разметка"

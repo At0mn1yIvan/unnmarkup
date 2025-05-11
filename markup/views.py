@@ -8,14 +8,14 @@ from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
 from . import constants
-from .models import Diagnose
+from .models import Diagnosis
 
 
 @login_required
 def markup(request):
     data = np.load("media/vanya.npy").tolist()
 
-    with open("media/diseases.json", "r", encoding="utf-8") as f:
+    with open("media/diagnoses.json", "r", encoding="utf-8") as f:
         diseases = json.load(f)
 
     with open("media/markup.json", "r", encoding="utf-8") as f:
@@ -42,7 +42,7 @@ def submit_validation(request):
     try:
         markups = json.loads(markup_data)
         diagnoses = json.loads(diagnoses_data)
-        # проверим, наскорлько верны пришедшие данные
+        # проверим, насколько верны пришедшие данные
         # проверим длину данных на сервере
 
     except json.JSONDecodeError:
@@ -64,12 +64,12 @@ def save_diagnoses(request):
             parent_name, child_name = path.split(" | ")
 
             try:
-                disease = Diagnose.objects.get(
+                disease = Diagnosis.objects.get(
                     name=child_name, parent__name=parent_name
                 )
                 selected_ids.append(disease)
 
-            except Diagnose.DoesNotExist:
+            except Diagnosis.DoesNotExist:
                 messages.error(
                     request,
                     f"Диагноз не найден: '{child_name}' (родитель: '{parent_name or 'нет'}')",
