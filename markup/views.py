@@ -1,14 +1,15 @@
 import json
 
 import numpy as np
-from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
+from django.views.generic import CreateView, ListView
 
 from . import constants
-from .models import Diagnosis
+from .forms import SignalUploadForm
+from .models import Diagnosis, Signal
 
 
 @login_required
@@ -55,44 +56,87 @@ def submit_validation(request):
     )
 
 
-def save_diagnoses(request):
-    if request.method == "POST":
-        selected_paths = request.POST.getlist("diagnoses")
-        selected_ids = []
+class SignalUploadView(CreateView, ListView):
+    model = Signal
+    form_class = SignalUploadForm
+    template_name = 'signals/upload_files.html'
+    context_object_name = 'signals'
+    success_url = '/upload/'
 
-        for path in selected_paths:
-            parent_name, child_name = path.split(" | ")
+    def get_queryset(self):
+        return Signal.objects.filter(
+            supplier=self.request.user.supplier_profile
+        ).order_by('-created_at')
 
-            try:
-                disease = Diagnosis.objects.get(
-                    name=child_name, parent__name=parent_name
-                )
-                selected_ids.append(disease)
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['supplier'] = self.request.user.supplier_profile
+        return kwargs
 
-            except Diagnosis.DoesNotExist:
-                messages.error(
-                    request,
-                    f"Диагноз не найден: '{child_name}' (родитель: '{parent_name or 'нет'}')",
-                )
-                continue
-
-    return render(
-        request,
-        "markup/list_diseases.html",
-        context={"selected_ids": selected_ids},
-    )
-
-
-def save_markup(request):
-    markup = None
-    if request.method == "POST":
+    def form_valid(self, form):
         try:
-            json_str = request.POST.get("markup_data", "{}")
-            markup = json.loads(json_str)
+            file = self.request.FILES['data']
+            form.instance.original_filename = file.name
+            form.instance.data = json.load(file)
 
+            if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                signal = form.save()
+                return JsonResponse({
+                    'status': 'success',
+                    'filename': file.name,
+                    'date': signal.created_at.strftime("%d.%m.%Y %H:%M"),
+                    'sample_rate': signal.sample_rate
+                })
+            
+            return super().form_valid(form)
+            
         except json.JSONDecodeError:
-            return HttpResponseBadRequest("Невалидный JSON в markup_data")
+            form.add_error('data', 'Некорректный формат JSON')
+            return self.form_invalid(form)
 
-    return render(
-        request, "markup/check_markup.html", context={"markup": markup}
-    )
+    def form_invalid(self, form):
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'errors': form.errors}, status=400)
+        return super().form_invalid(form)
+
+# def save_diagnoses(request):
+#     if request.method == "POST":
+#         selected_paths = request.POST.getlist("diagnoses")
+#         selected_ids = []
+
+#         for path in selected_paths:
+#             parent_name, child_name = path.split(" | ")
+
+#             try:
+#                 disease = Diagnosis.objects.get(
+#                     name=child_name, parent__name=parent_name
+#                 )
+#                 selected_ids.append(disease)
+
+#             except Diagnosis.DoesNotExist:
+#                 messages.error(
+#                     request,
+#                     f"Диагноз не найден: '{child_name}' (родитель: '{parent_name or 'нет'}')",
+#                 )
+#                 continue
+
+#     return render(
+#         request,
+#         "markup/list_diseases.html",
+#         context={"selected_ids": selected_ids},
+#    )
+
+
+# def save_markup(request):
+#     markup = None
+#     if request.method == "POST":
+#         try:
+#             json_str = request.POST.get("markup_data", "{}")
+#             markup = json.loads(json_str)
+
+#         except json.JSONDecodeError:
+#             return HttpResponseBadRequest("Невалидный JSON в markup_data")
+
+#     return render(
+#         request, "markup/check_markup.html", context={"markup": markup}
+#     )

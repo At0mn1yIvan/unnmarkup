@@ -1,0 +1,50 @@
+{% extends "base.html" %} {% load static %} 
+{% endblock %} {% block script %}
+<script src="{% static 'markup/js/filesupload/file_upload.js' %}"></script>
+{% endblock %}
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow">
+    <div class="card-body">
+      <h2 class="mb-4">Загрузка ЭКГ-сигналов</h2>
+
+      <!-- Форма загрузки -->
+      <div id="dropZone" class="drop-zone mb-4 p-5 border-dashed">
+        <form id="uploadForm" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="mb-3">
+            {{ form.data }}
+            <div class="invalid-feedback"></div>
+          </div>
+          <div class="mb-3">{{ form.sample_rate }}</div>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-cloud-upload"></i> Загрузить
+          </button>
+        </form>
+      </div>
+
+      <!-- Список загруженных файлов -->
+      <div class="mt-5">
+        <h4>Последние загрузки</h4>
+        <div id="filesList" class="list-group">
+          {% for signal in signals %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between">
+              <div>
+                <strong>{{ signal.original_filename }}</strong>
+                <div class="text-muted small">
+                  {{ signal.created_at|date:"d.m.Y H:i" }} | Частота: {{
+                  signal.sample_rate }} Гц
+                </div>
+              </div>
+            </div>
+          </div>
+          {% empty %}
+          <div class="text-muted">Нет загруженных файлов</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
