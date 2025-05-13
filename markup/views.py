@@ -2,6 +2,7 @@ import json
 
 import numpy as np
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
@@ -52,52 +53,55 @@ def submit_validation(request):
     return render(
         request,
         "markup/check_validation.html",
-        context={"markups": markups or [], "diagnoses": diagnoses or []}
+        context={"markups": markups or [], "diagnoses": diagnoses or []},
     )
 
 
 class SignalUploadView(CreateView, ListView):
     model = Signal
     form_class = SignalUploadForm
-    template_name = 'signals/upload_files.html'
-    context_object_name = 'signals'
-    success_url = '/upload/'
+    template_name = "markup/upload_files.html"
+    context_object_name = "signals"
+    success_url = "/upload/"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not (
+            request.user.is_superuser or request.user.role == "user_supplier"
+        ):
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        return Signal.objects.filter(
-            supplier=self.request.user.supplier_profile
-        ).order_by('-created_at')
+        signals = None
+        if self.request.user.is_superuser:
+            signals = Signal.objects.all()
+        else:
+            signals = Signal.objects.filter(
+                supplier=self.request.user.supplier_profile
+            )
+        return signals.order_by("-created_at")
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs['supplier'] = self.request.user.supplier_profile
+        kwargs["supplier"] = self.request.user.supplier_profile
         return kwargs
 
     def form_valid(self, form):
-        try:
-            file = self.request.FILES['data']
-            form.instance.original_filename = file.name
-            form.instance.data = json.load(file)
-
-            if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                signal = form.save()
-                return JsonResponse({
-                    'status': 'success',
-                    'filename': file.name,
-                    'date': signal.created_at.strftime("%d.%m.%Y %H:%M"),
-                    'sample_rate': signal.sample_rate
-                })
-            
-            return super().form_valid(form)
-            
-        except json.JSONDecodeError:
-            form.add_error('data', 'Некорректный формат JSON')
-            return self.form_invalid(form)
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            signal = form.save()
+            return JsonResponse({
+                "status": "success",
+                "filename": signal.original_filename,
+                "date": signal.created_at.strftime("%d.%m.%Y %H:%M"),
+                "sample_rate": signal.sample_rate,
+            })
+        return super().form_valid(form)
 
     def form_invalid(self, form):
-        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'errors': form.errors}, status=400)
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"errors": form.errors}, status=400)
         return super().form_invalid(form)
+
 
 # def save_diagnoses(request):
 #     if request.method == "POST":

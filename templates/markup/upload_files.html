@@ -1,5 +1,5 @@
 {% extends "base.html" %} {% load static %} 
-{% endblock %} {% block script %}
+{% block script %}
 <script src="{% static 'markup/js/filesupload/file_upload.js' %}"></script>
 {% endblock %}
 {% block content %}
@@ -13,7 +13,7 @@
         <form id="uploadForm" method="post" enctype="multipart/form-data">
           {% csrf_token %}
           <div class="mb-3">
-            {{ form.data }}
+            {{ form.data_file }}
             <div class="invalid-feedback"></div>
           </div>
           <div class="mb-3">{{ form.sample_rate }}</div>
@@ -47,4 +47,4 @@
     </div>
   </div>
 </div>
-
+{% endblock %}

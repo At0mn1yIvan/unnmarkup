@@ -1,7 +1,5 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.forms import ValidationError
 
 
@@ -35,15 +33,14 @@ class User(AbstractUser):
                             "user_supplier",
                         ]
                     )
-                    | models.Q(role__isnull=True, is_superuser=True)
                 ),
-                name="role_required_unless_superuser",
+                name="role_required",
             )
         ]
 
     def clean(self):
         super().clean()
-        if not self.is_superuser and not self.role:
+        if not self.role:
             raise ValidationError(
                 {"role": "Роль обязательна для обычных пользователей"}
             )
@@ -63,7 +60,7 @@ class MarkerProfile(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name="marker_profile",
-        limit_choices_to={"role": "user_marker"},
+        limit_choices_to={"role": "user_marker"} | {"is_superuser": True},
     )
 
 
@@ -72,7 +69,7 @@ class ValidatorProfile(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name="validator_profile",
-        limit_choices_to={"role": "user_validator"},
+        limit_choices_to={"role": "user_validator"} | {"is_superuser": True},
     )
 
 
@@ -81,15 +78,5 @@ class SupplierProfile(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name="supplier_profile",
-        limit_choices_to={"role": "user_supplier"},
+        limit_choices_to={"role": "user_supplier"} | {"is_superuser": True},
     )
-
-
-@receiver(post_save, sender=User)
-def create_profile(sender, instance, created, **kwargs):
-    if created and instance.role:
-        {
-            "user_marker": MarkerProfile,
-            "user_validator": ValidatorProfile,
-            "user_supplier": SupplierProfile
-        }.get(instance.role).objects.create(user=instance)

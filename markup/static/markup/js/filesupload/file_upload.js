@@ -25,7 +25,7 @@ class FileUploader {
     this.dropZone.classList.remove("dragover");
     const files = e.dataTransfer.files;
     if (files.length > 0) {
-      this.form.data.files = files;
+      this.form.data_file.files = files;
     }
   }
 
