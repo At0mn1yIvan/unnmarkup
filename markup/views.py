@@ -1,12 +1,15 @@
 import json
 
 import numpy as np
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponseBadRequest, JsonResponse
+from django.http import (HttpResponseBadRequest, HttpResponseRedirect,
+                         JsonResponse)
 from django.shortcuts import render
+from django.urls import reverse_lazy
 from django.views.decorators.http import require_POST
-from django.views.generic import CreateView, ListView
+from django.views.generic import CreateView, FormView, ListView
 
 from . import constants
 from .forms import SignalUploadForm
@@ -57,12 +60,11 @@ def submit_validation(request):
     )
 
 
-class SignalUploadView(CreateView, ListView):
+class SignalUploadView(CreateView):
     model = Signal
     form_class = SignalUploadForm
     template_name = "markup/upload_files.html"
-    context_object_name = "signals"
-    success_url = "/upload/"
+    success_url = reverse_lazy("markup:signal_upload")
 
     def dispatch(self, request, *args, **kwargs):
         if not (
@@ -71,36 +73,34 @@ class SignalUploadView(CreateView, ListView):
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
-    def get_queryset(self):
-        signals = None
-        if self.request.user.is_superuser:
-            signals = Signal.objects.all()
-        else:
-            signals = Signal.objects.filter(
-                supplier=self.request.user.supplier_profile
-            )
-        return signals.order_by("-created_at")
-
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["supplier"] = self.request.user.supplier_profile
         return kwargs
 
-    def form_valid(self, form):
-        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            signal = form.save()
-            return JsonResponse({
-                "status": "success",
-                "filename": signal.original_filename,
-                "date": signal.created_at.strftime("%d.%m.%Y %H:%M"),
-                "sample_rate": signal.sample_rate,
-            })
-        return super().form_valid(form)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Добавляем список сигналов в контекст
+        if self.request.user.is_superuser:
+            context["signals"] = Signal.objects.all().order_by("-created_at")
+        else:
+            context["signals"] = Signal.objects.filter(
+                supplier=self.request.user.supplier_profile
+            ).order_by("-created_at")
+        return context
 
-    def form_invalid(self, form):
-        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JsonResponse({"errors": form.errors}, status=400)
-        return super().form_invalid(form)
+    def form_valid(self, form):
+        try:
+            # return super().form_valid(form)
+            form.save()
+            # Перенаправляем с использованием success_url
+            return HttpResponseRedirect(self.success_url)
+
+        except Exception as e:
+            messages.error(
+                self.request, f"Ошибка при загрузке файлов: {str(e)}"
+            )
+            return self.form_invalid(form)
 
 
 # def save_diagnoses(request):
