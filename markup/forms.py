@@ -63,11 +63,15 @@ class SignalUploadForm(forms.ModelForm):
             try:
                 content = file.read()
                 data = np.load(BytesIO(content), allow_pickle=False)
+                file.seek(0)
                 if not isinstance(data, np.ndarray):
                     raise ValidationError(
                         f"Некорректные данные в файле {file.name}"
                     )
-                file.seek(0)
+
+                if self.is_duplicate_data(data):
+                    raise ValidationError("Эти данные уже были загружены ранее")
+
                 valid_files.append(file)
             except Exception as e:
                 raise ValidationError(f"Ошибка в файле {file.name}: {str(e)}")
@@ -78,6 +82,20 @@ class SignalUploadForm(forms.ModelForm):
             )
 
         return valid_files
+
+    def is_duplicate_data(self, data):
+        existing_signals = Signal.objects.filter(
+            supplier=self.supplier,
+            sample_rate=self.cleaned_data['sample_rate']
+            ).only("data_file")[:100]
+
+        for signal in existing_signals:
+            with signal.data_file.open("rb") as f:
+                existing_data = np.load(f, allow_pickle=False)
+                # Данные сравниваются в двух разных форматах
+                if np.allclose(data, existing_data, rtol=1e-4, atol=1e-5):
+                    return True
+        return False
 
     def save(self, commit=True):
         files = self.cleaned_data["files"]

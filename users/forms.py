@@ -1,7 +1,10 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from django.contrib.auth.forms import (AuthenticationForm, PasswordChangeForm,
-                                       UserCreationForm)
+from django.contrib.auth.forms import (
+    AuthenticationForm,
+    PasswordChangeForm,
+    UserCreationForm,
+)
 
 User = get_user_model()
 
@@ -46,6 +49,8 @@ class RegisterUserForm(UserCreationForm):
             "email",
             "first_name",
             "last_name",
+            "patronymic",
+            "phone",
             "password1",
             "password2",
         ]
@@ -53,11 +58,14 @@ class RegisterUserForm(UserCreationForm):
             "email": "E-mail",
             "first_name": "Имя",
             "last_name": "Фамилия",
+            "patronymic": "Отчество",
+            "phone": "Номер телефона",
         }
         widgets = {
             "email": forms.TextInput(attrs={"class": "form-input"}),
             "first_name": forms.TextInput(attrs={"class": "form-input"}),
             "last_name": forms.TextInput(attrs={"class": "form-input"}),
+            "patronymic": forms.TextInput(attrs={"class": "form-input"}),
         }
 
     def clean_email(self):
@@ -81,14 +89,24 @@ class ProfileUserForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["username", "email", "first_name", "last_name"]
+        fields = [
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "patronymic",
+            "phone",
+        ]
         labels = {
             "first_name": "Имя",
             "last_name": "Фамилия",
+            "patronymic": "Отчество",
+            "phone": "Номер телефона",
         }
         widgets = {
             "first_name": forms.TextInput(attrs={"class": "form-input"}),
             "last_name": forms.TextInput(attrs={"class": "form-input"}),
+            "patronymic": forms.TextInput(attrs={"class": "form-input"}),
         }
 
 
