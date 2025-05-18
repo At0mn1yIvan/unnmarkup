@@ -2,6 +2,7 @@ from io import BytesIO
 
 import numpy as np
 from django import forms
+from django.db.models.functions import Random
 from django.forms import ValidationError
 
 from .models import Signal
@@ -49,9 +50,11 @@ class SignalUploadForm(forms.ModelForm):
         self.supplier = kwargs.pop("supplier", None)
         super().__init__(*args, **kwargs)
         self.fields["sample_rate"].initial = 500
+        self.total_files = 0
 
     def clean_files(self):
         files = self.cleaned_data.get("files", [])
+        self.total_files = len(files)
         valid_files = []
 
         for file in files:
@@ -66,15 +69,17 @@ class SignalUploadForm(forms.ModelForm):
                 file.seek(0)
                 if not isinstance(data, np.ndarray):
                     raise ValidationError(
-                        f"Некорректные данные в файле {file.name}"
+                        f"Некорректный формат данных файла {file.name}"
                     )
 
                 if self.is_duplicate_data(data):
-                    raise ValidationError("Эти данные уже были загружены ранее")
+                    raise ValidationError(
+                        "Эти данные уже были загружены ранее"
+                    )
 
                 valid_files.append(file)
-            except Exception as e:
-                raise ValidationError(f"Ошибка в файле {file.name}: {str(e)}")
+            except Exception:
+                continue
 
         if not valid_files:
             raise ValidationError(
@@ -84,32 +89,43 @@ class SignalUploadForm(forms.ModelForm):
         return valid_files
 
     def is_duplicate_data(self, data):
-        existing_signals = Signal.objects.filter(
-            supplier=self.supplier,
-            sample_rate=self.cleaned_data['sample_rate']
-            ).only("data_file")[:100]
+        existing_signals = (
+            Signal.objects.filter(
+                supplier=self.supplier,
+                sample_rate=self.cleaned_data["sample_rate"],
+            )
+            .only("data_file")
+            .extra(select={"random_id": "random()"})
+            .order_by("random_id")[:100]
+        )
 
         for signal in existing_signals:
-            with signal.data_file.open("rb") as f:
-                existing_data = np.load(f, allow_pickle=False)
-                # Данные сравниваются в двух разных форматах
-                if np.allclose(data, existing_data, rtol=1e-4, atol=1e-5):
-                    return True
+            try:
+                with signal.data_file.open("rb") as f:
+                    existing_data = np.load(f, allow_pickle=False)
+                    # Как поступаем с rtol и atol?
+                    if np.allclose(data, existing_data, rtol=1e-4, atol=1e-5):
+                        return True
+            except Exception:
+                continue
         return False
 
     def save(self, commit=True):
-        files = self.cleaned_data["files"]
+        files = self.cleaned_data.get("files", [])
         instances = []
 
         for file in files:
-            instance = Signal(
-                supplier=self.supplier,
-                data_file=file,
-                sample_rate=self.cleaned_data["sample_rate"],
-                original_filename=file.name,
-            )
-            if commit:
-                instance.save()
-            instances.append(instance)
+            try:
+                instance = Signal(
+                    supplier=self.supplier,
+                    data_file=file,
+                    sample_rate=self.cleaned_data["sample_rate"],
+                    original_filename=file.name,
+                )
+                if commit:
+                    instance.save()
+                instances.append(instance)
+            except Exception:
+                continue
 
         return instances

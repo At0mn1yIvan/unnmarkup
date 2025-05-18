@@ -1,77 +1,87 @@
-{% extends "base.html" %}
-
+{% extends "base.html" %} 
+{% load static %}
 {% block content %}
-<div class="container mt-5">
-  <div class="card shadow">
-    <div class="card-body">
-      <h1 class="mb-4">Загрузка ЭКГ-сигналов</h1>
-
-      <!-- Форма загрузки -->
-      <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
+<div class="container-fluid mt-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+      <div class="card ecg-chart-container">
+        <div class="card-header bg-transparent border-bottom-0">
+          <h1 class="text-center h3 mb-0">Загрузка ЭКГ-сигналов</h1>
+        </div>
         
-        <!-- Вывод ошибок формы -->
-        {% if form.errors %}
-        <div class="alert alert-danger mb-4">
-          {% for field, errors in form.errors.items %}
-            {% for error in errors %}
-              <div>{{ error }}</div>
+        <div class="card-body pt-0">
+          <!-- Сообщения системы -->
+          {% if messages %}
+          <div class="mt-3">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
             {% endfor %}
-          {% endfor %}
-        </div>
-        {% endif %}
+          </div>
+          {% endif %}
 
-        <!-- Поле для загрузки файлов -->
-        <div class="mb-4">
-          <label class="form-label">{{ form.files.label }}</label>
-          {{ form.files }}
-          <small class="form-text text-muted">{{ form.files.help_text }}</small>
-          {% if form.files.errors %}
-            <div class="invalid-feedback d-block">
-              {% for error in form.files.errors %}
-                {{ error }}
+          <!-- Форма -->
+          <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+            {% csrf_token %}
+            
+            <!-- Ошибки формы -->
+            {% if form.errors %}
+            <div class="alert alert-danger mb-4">
+              {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                  <div>{{ error }}</div>
+                {% endfor %}
               {% endfor %}
             </div>
-          {% endif %}
-        </div>
+            {% endif %}
 
-        <!-- Поле sample_rate -->
-        <div class="mb-4">
-          <label class="form-label">{{ form.sample_rate.label }}</label>
-          {{ form.sample_rate }}
-          {% if form.sample_rate.errors %}
-            <div class="invalid-feedback d-block">
-              {% for error in form.sample_rate.errors %}
-                {{ error }}
-              {% endfor %}
+            <!-- Поле загрузки файлов -->
+            <div class="mb-4">
+              <label class="form-label fw-semibold">{{ form.files.label }}</label>
+              <div class="file-input-container">
+                {{ form.files }}
+              </div>
+              <small class="form-text text-muted mt-2 d-block">{{ form.files.help_text }}</small>
             </div>
-          {% endif %}
-        </div>
 
-        <button type="submit" class="btn btn-primary">
-          <i class="bi bi-cloud-upload"></i> Загрузить
-        </button>
-      </form>
+            <!-- Поле частоты дискретизации -->
+            <div class="mb-4">
+              <label class="form-label fw-semibold">{{ form.sample_rate.label }}</label>
+              {{ form.sample_rate }}
+            </div>
 
-      <!-- Список загруженных файлов -->
-      <div class="mt-5">
-        <h4>Последние загрузки</h4>
-        <div class="list-group">
-          {% for signal in signals %}
-          <div class="list-group-item">
-            <div class="d-flex justify-content-between">
-              <div>
-                <strong>{{ signal.original_filename }}</strong>
-                <div class="text-muted small">
-                  {{ signal.created_at|date:"d.m.Y H:i" }} | 
-                  Частота: {{ signal.sample_rate }} Гц
+            <!-- Кнопка отправки -->
+            <button type="submit" class="btn btn-primary w-100 py-2 fs-5">
+              <i class="bi bi-cloud-upload me-2"></i>Загрузить данные
+            </button>
+          </form>
+
+          <!-- Список загрузок -->
+          {% comment %}
+          <div class="mt-5 pt-4 border-top">
+            <h4 class="h5 mb-3">Последние загрузки</h4>
+            <div class="list-group ecg-uploads-list">
+              {% for signal in signals %}
+              <div class="list-group-item d-flex align-items-center">
+                <div class="flex-grow-1">
+                  <div class="d-flex align-items-center mb-1">
+                    <i class="bi bi-file-earmark-medical me-2"></i>
+                    <strong>{{ signal.original_filename }}</strong>
+                  </div>
+                  <div class="text-muted small">
+                    <span class="me-3">{{ signal.created_at|date:"d.m.Y H:i" }}</span>
+                    <span>Частота: {{ signal.sample_rate }} Гц</span>
+                  </div>
                 </div>
               </div>
+              {% empty %}
+              <div class="text-muted small">Нет загруженных файлов</div>
+              {% endfor %}
             </div>
           </div>
-          {% empty %}
-          <div class="text-muted">Нет загруженных файлов</div>
-          {% endfor %}
+          {% endcomment %}
         </div>
       </div>
     </div>

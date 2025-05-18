@@ -1,2 +1,6 @@
 .env
 __pycache__
+.venv
+ludb
+ecg_data
+db.sqlite3

@@ -14,10 +14,10 @@ class User(AbstractUser):
     last_name = models.CharField("Фамилия", max_length=150, blank=False)
     patronymic = models.CharField("Отчество", max_length=50, blank=True)
     phone = models.CharField(
-        "Телефон", max_length=20, unique=True, blank=False, null=False
+        "Телефон", max_length=20, unique=True, blank=True, null=True
     )
     role = models.CharField(
-        "Роль", max_length=20, choices=ROLES, blank=True, null=True
+        "Роль", max_length=20, choices=ROLES, blank=True, null=True, default="user_marker"
     )
 
     class Meta:

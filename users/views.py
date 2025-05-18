@@ -1,14 +1,11 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, PasswordChangeView
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, UpdateView
-from users.forms import (
-    LoginUserForm,
-    ProfileUserForm,
-    RegisterUserForm,
-    UserPasswordChangeForm,
-)
+from users.forms import (LoginUserForm, ProfileUserForm, RegisterUserForm,
+                         UserPasswordChangeForm)
 
 
 class LoginUser(LoginView):

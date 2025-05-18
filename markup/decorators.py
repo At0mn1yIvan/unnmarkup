@@ -11,7 +11,7 @@ def supplier_or_superuser_required(view_func):
             or hasattr(request.user, "supplier_profile")
         ):
             return HttpResponseForbidden(
-                "Доступ только для поставщиков данных или администраторов"
+                "Доступ только для поставщиков данных"
             )
         return view_func(request, *args, **kwargs)
 

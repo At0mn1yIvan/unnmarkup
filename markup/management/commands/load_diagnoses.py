@@ -3,6 +3,7 @@ from typing import Optional
 
 from django.core.management.base import BaseCommand
 from markup.models import Diagnosis
+from tqdm import tqdm
 
 
 class Command(BaseCommand):
@@ -30,7 +31,7 @@ class Command(BaseCommand):
         self.fill_data(diseases_data)
 
     def fill_data(self, data: dict[str, Optional[dict]], parent=None) -> None:
-        for name, children in data.items():
+        for name, children in tqdm(data.items()):
 
             diagnosis = Diagnosis.objects.create(name=name, parent=parent)
 
