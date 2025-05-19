@@ -33,10 +33,6 @@ def markup(request):
     # Тут необходимо выдать signal.data_file и прочитать его через np.load().tolist()
     data = np.load("media/vanya.npy").tolist()
 
-    # Загрузка дерева диагнозов для отрисовки
-    with open("media/diagnoses.json", "r", encoding="utf-8") as f:
-        diseases = json.load(f)
-
     # TODO плейсхолдер для ответа нейронной сети
     with open("media/markup.json", "r", encoding="utf-8") as f:
         markups = json.load(f)
@@ -48,7 +44,6 @@ def markup(request):
             "data": data,
             "ecg_names": constants.ECG_LEADS,
             "markup_types": constants.MARKUP_TYPES,
-            "diseases_json": diseases,
             "markups": markups,
         },
     )
@@ -199,6 +194,190 @@ class StartNewMarkupView(
         return redirect("perform_markup", markup_id=new_markup.pk)
 
 
+# class PerformMarkupView(
+#     LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, View
+# ):
+#     template_name = "markup/perform_markup_form.html"
+
+#     def get_markup_or_handle_error(self, request, markup_id):
+#         """Вспомогательный метод для получения и проверки объекта Markup."""
+#         try:
+#             # Убедимся, что маркировщик может редактировать только свои разметки
+#             markup = Markup.objects.select_related("signal").get(
+#                 pk=markup_id, marker=request.user.marker_profile
+#             )
+#         except Markup.DoesNotExist:
+#             messages.error(
+#                 request,
+#                 "Разметка не найдена или у вас нет прав на её редактирование.",
+#             )
+#             return None, redirect("markup:markup_list")
+
+#         if markup.status != "draft":
+#             messages.warning(
+#                 request,
+#                 f"Разметка не может быть отредактирована как черновик.",
+#             )
+#             return None, redirect("markup:markup_list")
+
+#         if markup.is_expired():
+#             signal_to_update = markup.signal
+#             signal_name = signal_to_update.original_filename
+
+#             with transaction.atomic():
+#                 markup.delete()
+#                 Signal.objects.filter(
+#                     pk=signal_to_update.pk, markup_assignments_count__gt=0
+#                 ).update(
+#                     markup_assignments_count=F("markup_assignments_count") - 1
+#                 )
+
+#             messages.error(
+#                 request,
+#                 f"Срок действия вашего черновика для сигнала '{signal_name}' истек, и он был удален. Пожалуйста, начните новую разметку.",
+#             )
+#             return None, redirect("markup:markup_list")
+
+#         return markup, None
+
+#     def get(self, request, markup_id, *args, **kwargs):
+#         markup, error_redirect = self.get_markup_or_handle_error(
+#             request, markup_id
+#         )
+#         if error_redirect:
+#             return error_redirect
+
+#         signal = markup.signal
+
+#         try:
+#             ecg_signal_data = np.load(signal.data_file.path).tolist()
+#         except FileNotFoundError:
+#             messages.error(
+#                 request, f"Файл сигнала ЭКГ не найден: {signal.data_file.name}"
+#             )
+#             return redirect("markup:markup_list")
+#         except Exception as e:
+#             messages.error(request, f"Ошибка при загрузке данных ЭКГ: {e}")
+#             return redirect("markup:markup_list")
+
+#         # # Подготовка выбранных диагнозов для отображения в форме
+#         # selected_diagnoses_paths = []
+#         # for diag in markup.diagnoses.select_related('parent').all():
+#         #     if diag.parent: # Только если есть родитель, т.к. мы сохраняем "Родитель | Потомок"
+#         #         selected_diagnoses_paths.append(f"{diag.parent.name} | {diag.name}")
+
+#         context = {
+#             "page_title": f"Разметка сигнала: {signal.original_filename}",
+#             "markup": markup,
+#             "signal": signal,
+#             "data": ecg_signal_data,
+#             "ecg_names": constants.ECG_LEADS,
+#             "markup_types": constants.MARKUP_TYPES,
+#             # 'diagnoses_choices': get_diagnosis_choices(),
+#             "current_markup_data_json": json.dumps(
+#                 markup.markup_data or []
+#             ),  # если markup_data может быть None
+#             # 'selected_diagnoses_paths': selected_diagnoses_paths,
+#             "time_left_for_draft_str": (
+#                 str(markup.time_left_for_draft()).split(".")[0]
+#                 if markup.time_left_for_draft()
+#                 else None
+#             ),  # Форматируем для отображения
+#         }
+#         return render(request, self.template_name, context)
+
+#     @transaction.atomic
+#     def post(self, request, markup_id, *args, **kwargs):
+#         markup, error_redirect = self.get_markup_or_handle_error(request, markup_id)
+#         if error_redirect:
+#             return error_redirect
+
+#         signal = markup.signal
+
+#         markup_data_str = request.POST.get('markup_data')
+#         selected_diagnoses_paths = request.POST.getlist('diagnoses')
+#         action = request.POST.get('action', 'submit_for_validation')
+
+#         # Валидация данных разметки (JSON)
+#         try:
+#             markup_data_json = json.loads(markup_data_str) if markup_data_str else []
+#             if not isinstance(markup_data_json, list):
+#                 raise ValueError("Данные разметки (markup_data) должны быть списком.")
+#         except (json.JSONDecodeError, ValueError) as e:
+#             messages.error(request, f"Ошибка в данных разметки: {e}")
+#             # Перерисовка формы с ошибкой, сохраняя введенные данные
+#             context = self._get_error_context(request, markup, markup_data_str, selected_diagnoses_paths)
+#             return render(request, self.template_name, context)
+
+#         # Обработка и валидация диагнозов
+#         diagnosis_instances = []
+#         has_diagnosis_errors = False
+#         for path in selected_diagnoses_paths:
+#             try:
+#                 parent_name, child_name = path.split(" | ")
+#                 parent_name = parent_name.strip()
+#                 child_name = child_name.strip()
+#                 diagnosis = Diagnosis.objects.get(name=child_name, parent__name=parent_name)
+#                 diagnosis_instances.append(diagnosis)
+#             except Diagnosis.DoesNotExist:
+#                 messages.error(request, f"Диагноз не найден: '{child_name}' (родитель: '{parent_name}').")
+#                 has_diagnosis_errors = True
+#             except ValueError:
+#                 messages.error(request, f"Некорректный формат для пути диагноза: '{path}'.")
+#                 has_diagnosis_errors = True
+
+#         if has_diagnosis_errors:
+#             messages.warning(request, "Разметка не была сохранена из-за ошибок в диагнозах. Пожалуйста, исправьте их.")
+#             context = self._get_error_context(request, markup, markup_data_str, selected_diagnoses_paths)
+#             return render(request, self.template_name, context)
+
+#         # Обновление объекта Markup
+#         markup.markup_data = markup_data_json
+#         markup.diagnoses.set(diagnosis_instances) # .set() правильно обработает M2M
+
+#         if action == "save_draft":
+#             markup.status = "draft"
+#             # Можно обновить expires_at, если хотите продлить время на черновик при каждом сохранении
+#             # markup.expires_at = timezone.now() + timedelta(hours=12) 
+#             markup.save()
+#             messages.success(request, f"Черновик для сигнала '{signal.original_filename}' успешно сохранен.")
+#             return redirect("markup:perform_markup", markup_id=markup.id) # Остаемся на той же странице
+
+#         elif action == "submit_for_validation":
+#             markup.status = "for_validation"
+#             markup.expires_at = None  # Черновик больше не действителен по времени
+#             markup.save()
+#             messages.success(request, f"Разметка для сигнала '{signal.original_filename}' успешно отправлена на валидацию.")
+#             return redirect("markup:markup_list")
+
+#         else:
+#             messages.error(request, "Неизвестное действие.")
+#             context = self._get_error_context(request, markup, markup_data_str, selected_diagnoses_paths)
+#             return render(request, self.template_name, context)
+
+#     def _get_error_context(self, request, markup_obj, submitted_markup_data_str, submitted_diagnoses_paths):
+#         """Вспомогательный метод для подготовки контекста при ошибках POST."""
+#         signal = markup_obj.signal
+#         try:
+#             ecg_signal_data = np.load(signal.data_file.path).tolist()
+#         except: # Лучше ловить конкретные исключения
+#             ecg_signal_data = [] # Или обработать ошибку более строго
+#             messages.error(request, "Не удалось перезагрузить данные ЭКГ для формы.")
+
+#         return {
+#             'page_title': f"Разметка сигнала: {signal.original_filename}",
+#             'markup': markup_obj,
+#             'signal': signal,
+#             'ecg_data': ecg_signal_data,
+#             'ecg_leads': constants.ECG_LEADS,
+#             'markup_types': constants.MARKUP_TYPES,
+#             'diagnoses_choices': get_diagnosis_choices(),
+#             'current_markup_data_json': submitted_markup_data_str or json.dumps(markup_obj.markup_data or []),
+#             'selected_diagnoses_paths': submitted_diagnoses_paths,
+#             'time_left_for_draft_str': str(markup_obj.time_left_for_draft()).split('.')[0] if markup_obj.time_left_for_draft() else None,
+#         }
+
+
 # def get_diagnosis_choices():
 #     """
 #     Подготавливает варианты диагнозов для шаблона.
@@ -236,7 +415,9 @@ def submit_validation(request):
     )
 
 
-class SignalUploadView(LoginRequiredMixin, UserIsSupplierOrSuperuserMixin, CreateView):
+class SignalUploadView(
+    LoginRequiredMixin, UserIsSupplierOrSuperuserMixin, CreateView
+):
     model = Signal
     form_class = SignalUploadForm
     template_name = "markup/upload_files.html"

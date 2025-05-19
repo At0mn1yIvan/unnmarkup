@@ -1,10 +1,14 @@
 {% extends "base.html" %} {% load static %}
 {% block script %}
 <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    window.APP_CONFIG = window.APP_CONFIG || {};
+    window.APP_CONFIG.diagnosesJsonUrl = "{% static 'markup/data/diagnoses.json' %}";
+  </script>
 
 {{ data|json_script:"ecgData" }}
 {{ ecg_names|json_script:"ecgNames" }}
-{{ diseases_json|json_script:"diseasesData" }}
+{% comment %} {{ diseases_json|json_script:"diseasesData" }} {% endcomment %}
 {{ markups|json_script:"markups" }}
 
 <script type="module" src="{% static 'markup/js/app.js'%}"></script>

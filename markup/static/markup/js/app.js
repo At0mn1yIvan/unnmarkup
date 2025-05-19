@@ -4,15 +4,33 @@ import { EcgGraphMarkupManager } from "./ecg/EcgGraphMarkupManager.js";
 import { IndexedDatabase } from "./indexedDB/IndexedDatabase.js";
 import { DiseaseTreeManager } from "./UI/DiseaseTreeManager.js";
 
+async function initializeDiagnoses() {
+  try {
+    const response = await fetch(window.APP_CONFIG.diagnosesJsonUrl);
+    if (!response.ok) {
+      throw new Error(
+        `HTTP error! status: ${response.status} while fetching diagnoses.`
+      );
+    }
+    const diagnosesData = await response.json();
+    console.log("Diagnoses data loaded:", diagnosesData);
+    return diagnosesData;
+  } catch (error) {
+    console.error("Failed to load diagnoses data:", error);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   try {
     const ecgData = JSON.parse(document.getElementById("ecgData").textContent);
     const ecgNames = JSON.parse(
       document.getElementById("ecgNames").textContent
     );
-    const diseasesData = JSON.parse(
-      document.getElementById("diseasesData").textContent
-    );
+    // const diseasesData = JSON.parse(
+    //   document.getElementById("diseasesData").textContent
+    // );
+    const diagnosesData = await initializeDiagnoses();
+
     const markupsNN = JSON.parse(
       document.getElementById("markups").textContent
     );
@@ -37,7 +55,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       "right-column",
       ecgData,
       ecgNames,
-      diseasesData,
+      diagnosesData,
       options
     );
   } catch (error) {
