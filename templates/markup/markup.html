@@ -13,7 +13,21 @@
 
 <script type="module" src="{% static 'markup/js/app.js'%}"></script>
 {% endblock %} {% block content %}
-<div class="container-fluid">
+<div class="container-fluid mt-3">
+
+  {% if messages %}
+  <div class="row">
+    <div class="col-12">
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-3" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <div class="row g-3">
     <div class="col-9">
       <div class="d-flex gap-2" id="charts-container">
@@ -62,11 +76,11 @@
                     class="form-check-input"
                     type="radio"
                     name="markup-option"
-                    id="{{ item.value }}-option"
+                    id="{{ item.value|slugify }}-option"
                     value="{{ item.value }}"
                     {% if forloop.first %}checked{% endif %}
                   />
-                  <label class="form-check-label d-flex align-items-center" for="{{ item.value }}-option">
+                  <label class="form-check-label d-flex align-items-center" for="{{ item.value|slugify }}-option">
                     <span style="color: {{ item.color }}; font-weight: 600">
                       {{ item.value }}
                     </span>
@@ -89,12 +103,12 @@
           </div>
         </div>
         <div class="card-footer bg-transparent">
-          <form id="validation-form" method="post" action="{% url 'markup:submit_validation' %}">
+          <form id="validation-form" method="post" action="{% url 'markup:perform_markup' %}">
             {% csrf_token %}
             <input type="hidden" id="markup-data" name="markup_data">
             <input type="hidden" id="diagnoses-data" name="diagnoses_data">
             <button 
-              type="button" 
+              type="submit" 
               id="submit-validation-btn" 
               class="btn btn-success w-100"
             >

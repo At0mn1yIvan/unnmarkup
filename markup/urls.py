@@ -6,15 +6,24 @@ from .decorators import supplier_or_superuser_required
 app_name = "markup"
 
 urlpatterns = [
-    path("markup/", views.markup, name="markup"),
-    # path("save-diagnoses/", views.save_diagnoses, name="save_diagnoses"),
-    # path("save-markup/", views.save_markup, name="save_markup"),
+    path("list/", views.MarkupListView, name="markup_list"),
     path(
-        "submit-validation/", views.submit_validation, name="submit_validation"
+        "start/", views.StartNewMarkupView.as_view(), name="start_new_markup"
     ),
     path(
+        "perform/<int:markup_id>/",
+        views.PerformMarkupView.as_view(),
+        name="perform_markup",
+    ),
+    # path("markup/", views.markup, name="markup"),
+    # path("save-diagnoses/", views.save_diagnoses, name="save_diagnoses"),
+    # path("save-markup/", views.save_markup, name="save_markup"),
+    # path(
+    #     "submit-validation/", views.submit_validation, name="submit_validation"
+    # ),
+    path(
         "upload/",
-        supplier_or_superuser_required(views.SignalUploadView.as_view()),
+        views.SignalUploadView.as_view(),
         name="signal_upload",
     ),
 ]

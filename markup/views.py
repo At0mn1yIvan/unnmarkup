@@ -194,6 +194,203 @@ class StartNewMarkupView(
         return redirect("perform_markup", markup_id=new_markup.pk)
 
 
+class PerformMarkupView(
+    LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, View
+):
+    template_name = "markup/markup.html"
+
+    def get_markup_or_handle_error(self, request, markup_id):
+        """
+        Вспомогательный метод для получения и валидации объекта Markup.
+        Вызывается как в GET, так и в POST запросах.
+        Возвращает (markup_instance, None) при успехе или (None, redirect_response) при ошибке.
+        """
+        try:
+            # Пытаемся получить объект Markup.
+            # select_related('signal') оптимизирует запрос, сразу подгружая связанный объект Signal.
+            # Фильтруем по pk (markup_id) и marker (текущий пользовательский marker_profile),
+            # чтобы убедиться, что пользователь редактирует свою разметку.
+            markup = Markup.objects.select_related("signal").get(
+                pk=markup_id, marker=request.user.marker_profile
+            )
+        except Markup.DoesNotExist:
+            # Если разметка с таким ID не найдена или не принадлежит пользователю.
+            messages.error(
+                request,
+                "Разметка не найдена или у вас нет прав на её редактирование.",
+            )
+            return None, redirect("markup:markup_list")
+
+        # Проверка статуса разметки. Редактировать можно только черновики ('draft').
+        if markup.status != "draft":
+            messages.warning(request, f"Разметка не может быть изменена.")
+            return None, redirect("markup:markup_list")
+
+        # Проверка, не истек ли срок действия черновика.
+        if markup.is_expired():
+            signal_to_update = markup.signal
+            signal_name = signal_to_update.original_filename
+
+            # Если черновик истек, он удаляется, и счетчик назначений у сигнала уменьшается.
+            # @transaction.atomic гарантирует, что обе операции (удаление и обновление)
+            # будут выполнены успешно, либо ни одна из них.
+            with transaction.atomic():
+                markup.delete()  # Удаляем истекший черновик
+                # Уменьшаем счетчик markup_assignments_count у связанного сигнала,
+                # но только если он больше нуля, чтобы избежать отрицательных значений.
+                Signal.objects.filter(
+                    pk=signal_to_update.pk, markup_assignments_count__gt=0
+                ).update(
+                    markup_assignments_count=F("markup_assignments_count") - 1
+                )
+
+            messages.error(
+                request,
+                f"Срок действия вашего черновика для сигнала '{signal_name}' истек. Он был удален. Пожалуйста, начните новую разметку.",
+            )
+            # Ваш JS также должен обработать истечение на клиенте (очистить IndexedDB).
+            return None, redirect("markup:markup_list")
+
+        # Если все проверки пройдены, возвращаем объект разметки.
+        return markup, None
+
+    def get(self, request, markup_id, *args, **kwargs):
+        """Обработка GET-запроса для отображения страницы разметки."""
+        markup, error_redirect = self.get_markup_or_handle_error(
+            request, markup_id
+        )
+        if (
+            error_redirect
+        ):  # Если get_markup_or_handle_error вернул редирект, выполняем его
+            return error_redirect
+        # Эта проверка на случай, если get_markup_or_handle_error теоретически может вернуть (None, None)
+        if not markup:
+            return redirect("markup:markup_list")
+
+        signal_obj = markup.signal  # Связанный с разметкой объект Signal
+
+        try:
+            ecg_signal_data = np.load(signal_obj.data_file.path).tolist()
+        except FileNotFoundError:
+            messages.error(
+                request,
+                f"Файл сигнала ЭКГ ({signal_obj.data_file.name}) не найден. Разметка не может быть отображена.",
+            )
+            return redirect("markup:markup_list")
+        except (
+            Exception
+        ) as e:  # Ловим другие возможные ошибки при загрузке/обработке .npy
+            messages.error(
+                request,
+                f"Ошибка при загрузке или обработке данных ЭКГ: {e}. Разметка не может быть отображена.",
+            )
+            return redirect("markup:markup_list")
+
+        # Формирование контекста для передачи в HTML-шаблон.
+        context = {
+            "page_title": f"Разметка сигнала: {signal_obj.original_filename}",  # Заголовок страницы
+            "markup_id": markup.id,  # ID текущего черновика (для JS и URL формы)
+            "signal_id": signal_obj.id,  # ID сигнала (может быть полезно для JS)
+            # Данные для {{ data|json_script:"ecgData" }} в шаблоне
+            "data": ecg_signal_data,
+            # Данные для {{ ecg_names|json_script:"ecgNames" }}
+            "ecg_names": constants.ECG_LEADS,
+            "markups": [],  # Или markup.markup_data, если хотите передать сохраненное состояние из БД (но IndexedDB может его переопределить)
+            # Типы разметки для радиокнопок выбора инструмента (P, QRS, T, Noise)
+            "markup_types": constants.MARKUP_TYPES,
+            # Время истечения черновика в ISO формате для использования в JS (например, для таймера)
+            "markup_expires_at_iso": (
+                markup.expires_at.isoformat() if markup.expires_at else None
+            ),
+            # URL, на который будет отправлена форма валидации (POST-запрос к этому же view)
+            "submit_validation_url": request.path,  # request.path содержит текущий URL
+        }
+        return render(request, self.template_name, context)
+
+    @transaction.atomic  # Гарантирует, что все операции с БД в методе либо выполнятся успешно, либо откатятся
+    def post(self, request, markup_id, *args, **kwargs):
+        """Обработка POST-запроса для отправки разметки на валидацию."""
+        markup, error_redirect = self.get_markup_or_handle_error(request, markup_id)
+        if error_redirect:  # Проверки на существование, статус, срок действия черновика
+            return error_redirect
+        if not markup:
+            return redirect("markup:markup_list")
+
+        # Получение данных из POST-запроса.
+        # Имена полей 'markup_data' и 'diagnoses_data' должны соответствовать
+        # атрибутам 'name' у <input type="hidden"> в вашей форме.
+        markup_data_str = request.POST.get('markup_data')
+        selected_diagnoses_paths_str = request.POST.get('diagnoses_data')
+
+        # 1. Валидация данных разметки (аннотаций ЭКГ)
+        try:
+            # Данные разметки должны прийти как JSON-строка, представляющая массив объектов.
+            markup_data_json = json.loads(markup_data_str) if markup_data_str else []
+            if not isinstance(markup_data_json, list):
+                # Здесь можно добавить более глубокую валидацию структуры каждого объекта в массиве,
+                # например, проверку наличия и типов ключей "type", "x0", "x1".
+                raise ValueError("Данные разметки (markup_data) должны быть JSON-массивом объектов.")
+        except (json.JSONDecodeError, ValueError) as e:
+            messages.error(request, f"Ошибка в формате данных разметки: {e}. Пожалуйста, попробуйте снова.")
+            # Возвращаем пользователя на страницу разметки. Данные у него должны быть в IndexedDB.
+            return redirect('markup:perform_markup', markup_id=markup_id)
+
+        # 2. Обработка и валидация выбранных диагнозов
+        diagnosis_instances = [] # Список для хранения найденных объектов Diagnosis
+        has_diagnosis_errors = False
+
+        try:
+            # Данные диагнозов должны прийти как JSON-строка, представляющая массив строк
+            # формата "Родитель | Потомок".
+            selected_diagnoses_paths_list = json.loads(selected_diagnoses_paths_str) if selected_diagnoses_paths_str else []
+            if not isinstance(selected_diagnoses_paths_list, list):
+                 raise ValueError("Данные диагнозов должны быть JSON-массивом строк.")
+        except (json.JSONDecodeError, ValueError) as e:
+            messages.error(request, f"Ошибка в формате данных диагнозов: {e}. Пожалуйста, попробуйте снова.")
+            return redirect('markup:perform_markup', markup_id=markup_id)
+
+        for path_str in selected_diagnoses_paths_list:
+            # Проверка формата каждой строки диагноза
+            if not isinstance(path_str, str) or " | " not in path_str:
+                messages.error(request, f"Некорректный формат для пути диагноза: '{path_str}'.")
+                has_diagnosis_errors = True
+                continue  # Переходим к следующему пути диагноза
+
+            # Разделяем строку на имя родителя и имя потомка
+            parts = path_str.split(" | ")
+            parent_name = parts[0].strip()
+            child_name = parts[1].strip() if len(parts) > 1 else ""
+
+            if not child_name:
+                messages.error(request, f"Некорректный формат для пути диагноза (отсутствует дочерний диагноз): '{path_str}'.")
+                has_diagnosis_errors = True
+                continue
+            try:
+                # Поиск диагноза в базе данных по имени и имени родителя.
+                # Это соответствует вашему псевдокоду.
+                diagnosis = Diagnosis.objects.get(name=child_name, parent__name=parent_name)
+                diagnosis_instances.append(diagnosis)
+            except Diagnosis.DoesNotExist:
+                messages.error(request, f"Диагноз не найден в базе данных: '{child_name}' (родитель: '{parent_name}'). Возможно, структура диагнозов на клиенте устарела или содержит ошибку.")
+                has_diagnosis_errors = True
+
+        # Если были ошибки при поиске диагнозов, прерываем сохранение.
+        if has_diagnosis_errors:
+            messages.warning(request, "Разметка не была отправлена на валидацию из-за ошибок в диагнозах. Пожалуйста, проверьте выбранные диагнозы и попробуйте снова.")
+            # Возвращаем пользователя на страницу разметки.
+            return redirect('markup:perform_markup', markup_id=markup_id)
+
+        # 3. Обновление объекта Markup и сохранение в базе данных
+        markup.markup_data = markup_data_json  # Сохраняем JSON аннотаций
+        markup.diagnoses.set(diagnosis_instances)
+        markup.status = "for_validation"  # Меняем статус на "На проверке"
+        markup.expires_at = None  # Срок действия черновика больше не актуален
+        markup.save()  # Сохраняем все изменения в Markup
+
+        messages.success(request, f"Разметка для сигнала '{markup.signal.original_filename}' успешно отправлена на валидацию.")
+        # После успешной отправки, ваш JS должен очистить данные из IndexedDB для этого markup_id.
+        return redirect("markup:markup_list")  # Перенаправляем на список разметок
+
 # class PerformMarkupView(
 #     LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, View
 # ):
@@ -338,7 +535,7 @@ class StartNewMarkupView(
 #         if action == "save_draft":
 #             markup.status = "draft"
 #             # Можно обновить expires_at, если хотите продлить время на черновик при каждом сохранении
-#             # markup.expires_at = timezone.now() + timedelta(hours=12) 
+#             # markup.expires_at = timezone.now() + timedelta(hours=12)
 #             markup.save()
 #             messages.success(request, f"Черновик для сигнала '{signal.original_filename}' успешно сохранен.")
 #             return redirect("markup:perform_markup", markup_id=markup.id) # Остаемся на той же странице
