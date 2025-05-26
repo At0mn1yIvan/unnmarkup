@@ -125,28 +125,8 @@ export class IndexedDatabase {
       return false;
     }
   }
-  static async clearWithConfirm(
-    message = "При выходе из профиля несохраненные данные будут утеряны. Продолжить?"
-  ) {
-    // Метод, ожидающий подтверждения, для удаления БД при выходе из профиля
 
-    if (!(await this.hasData())) return true;
-
-    // Синхронная проверка confirm
-    const isConfirmed = confirm(message);
-    if (!isConfirmed) return false;
-
-    // Асинхронная очистка БД
-    try {
-      await this.#deleteDatabase();
-      return true;
-    } catch (error) {
-      console.error("Ошибка при очистке БД:", error);
-      return false;
-    }
-  }
-
-  static async #deleteDatabase() {
+  static async deleteDatabase() {
     if (this.#db) {
       this.#db.close();
       this.#db = null;

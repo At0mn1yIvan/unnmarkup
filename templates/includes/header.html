@@ -50,11 +50,12 @@
             {% csrf_token %}
             <li class="nav-item">
               <a
-                id="logoutLink"
+                id="customLogoutTrigger"
                 class="nav-link"
                 href="#"
                 >Выйти</a
               >
+              <button type="submit" id="actualLogoutButton" style="display: none;"></button>
             </li>
           </form>
           {% else %}

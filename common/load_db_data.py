@@ -24,7 +24,7 @@ def convert_ludb_to_npy_signals(data_dir_path: str) -> None:
     Path(npy_signals_dir).mkdir(exist_ok=True)
 
     all_files = os.listdir(data_dir_path)
-    record_names = list(set([f.split('.')[0] for f in all_files if f.endswith('.dat')]))
+    record_names = list(set([f.split(".")[0] for f in all_files if f.endswith(".dat")]))
 
     for record_name in tqdm(record_names):
         try:
@@ -33,7 +33,7 @@ def convert_ludb_to_npy_signals(data_dir_path: str) -> None:
             signal, _ = wfdb.rdsamp(record_path)
 
             output_path = os.path.join(npy_signals_dir, f"{record_name}.npy")
-            np.save(output_path, signal)
+            np.save(output_path, signal.T)
         except Exception as e:
             print(f"\nОшибка в записи {record_name}: {str(e)}")
 

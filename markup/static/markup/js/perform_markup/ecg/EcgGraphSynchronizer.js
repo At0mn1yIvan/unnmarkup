@@ -1,21 +1,18 @@
 import { EcgGraphGroup } from "./EcgGraphGroup.js";
 import { EcgGraphMarkupManager } from "./EcgGraphMarkupManager.js";
-import { UIManager } from "../UI/UIManager.js";
+
 
 export class EcgGraphSynchronizer {
   #leftGraphGroup;
   #rightGraphGroup;
   #leftMarkup;
   #rightMarkup;
-  #uiManager;
   #zoomCompensationFactor;
   #gridStep;
 
-  constructor(leftContainerId, rightContainerId, dataGroup, chartNames, diseasesData, opts) {
+  constructor(leftContainerId, rightContainerId, dataGroup, chartNames, uiManager, opts) {
     this.#zoomCompensationFactor = 0.7;
     this.#gridStep = opts.visibleLength / opts.gridWidth;
-
-    this.#uiManager = new UIManager(diseasesData);
 
     this.#leftGraphGroup = new EcgGraphGroup(
       leftContainerId,
@@ -30,8 +27,8 @@ export class EcgGraphSynchronizer {
       opts
     );
 
-    this.#leftMarkup = new EcgGraphMarkupManager(this.#leftGraphGroup, this.#uiManager);
-    this.#rightMarkup = new EcgGraphMarkupManager(this.#rightGraphGroup, this.#uiManager);
+    this.#leftMarkup = new EcgGraphMarkupManager(this.#leftGraphGroup, uiManager);
+    this.#rightMarkup = new EcgGraphMarkupManager(this.#rightGraphGroup, uiManager);
 
     this.#syncEvents();
   }

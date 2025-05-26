@@ -57,31 +57,6 @@
               <i class="bi bi-cloud-upload me-2"></i>Загрузить данные
             </button>
           </form>
-
-          <!-- Список загрузок -->
-          {% comment %}
-          <div class="mt-5 pt-4 border-top">
-            <h4 class="h5 mb-3">Последние загрузки</h4>
-            <div class="list-group ecg-uploads-list">
-              {% for signal in signals %}
-              <div class="list-group-item d-flex align-items-center">
-                <div class="flex-grow-1">
-                  <div class="d-flex align-items-center mb-1">
-                    <i class="bi bi-file-earmark-medical me-2"></i>
-                    <strong>{{ signal.original_filename }}</strong>
-                  </div>
-                  <div class="text-muted small">
-                    <span class="me-3">{{ signal.created_at|date:"d.m.Y H:i" }}</span>
-                    <span>Частота: {{ signal.sample_rate }} Гц</span>
-                  </div>
-                </div>
-              </div>
-              {% empty %}
-              <div class="text-muted small">Нет загруженных файлов</div>
-              {% endfor %}
-            </div>
-          </div>
-          {% endcomment %}
         </div>
       </div>
     </div>

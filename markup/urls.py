@@ -1,12 +1,11 @@
 from django.urls import path
 from markup import views
 
-from .decorators import supplier_or_superuser_required
 
 app_name = "markup"
 
 urlpatterns = [
-    path("list/", views.MarkupListView, name="markup_list"),
+    path("list/", views.MarkupListView.as_view(), name="markup_list"),
     path(
         "start/", views.StartNewMarkupView.as_view(), name="start_new_markup"
     ),

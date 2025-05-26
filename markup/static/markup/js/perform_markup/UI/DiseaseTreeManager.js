@@ -79,6 +79,8 @@ export class DiseaseTreeManager {
       } catch (error) {
         console.error("Ошибка сохранения диагнозов:", error);
         alert("Ошибка сохранения диагнозов");
+      }  finally {
+        saveBtn.blur();
       }
 
       //Добавляем toast вниз экрана, что данные успешно сохранены
@@ -99,6 +101,7 @@ export class DiseaseTreeManager {
   }
 
   #restoreSelectedDiagnoses() {
+    // Восстановление чексов из загруженных данных
     const savedSet = new Set(DiseaseTreeManager.#diagnoses);
     const checkboxes = this.#container.querySelectorAll(
       'input[name="diagnoses"]'
@@ -110,7 +113,8 @@ export class DiseaseTreeManager {
   }
 
   static loadSelectedDiagnoses(loadedDiagnoses) {
-    DiseaseTreeManager.#diagnoses = loadedDiagnoses;
+    // Предзагрузка данных
+    this.#diagnoses = loadedDiagnoses;
   }
 
   // Получение выбранных диагнозов

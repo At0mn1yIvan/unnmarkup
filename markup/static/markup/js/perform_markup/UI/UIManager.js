@@ -1,16 +1,16 @@
-import { MarkupMenuManager } from "../UI/MarkupMenuManager.js";
-import { DiseaseTreeManager } from "../UI/DiseaseTreeManager.js";
+import { MarkupMenuManager } from "./MarkupMenuManager.js";
+import { DiseaseTreeManager } from "./DiseaseTreeManager.js";
 import { IndexedDatabase } from "../indexedDB/IndexedDatabase.js";
 
 export class UIManager {
   markupMenuManager;
   diseaseTreeManager;
-  static isLoggingOut = false;
+  static isAutosave = true; // поле-флаг, отключающее автосохранение разметки для определенных действий
 
-  constructor(diseasesData) {
+  constructor(diagnosesTreeStructure) {
     this.markupMenuManager = new MarkupMenuManager();
     this.diseaseTreeManager = new DiseaseTreeManager(
-      diseasesData,
+      diagnosesTreeStructure,
       "diagnosis-tree-container"
     );
 
@@ -20,9 +20,10 @@ export class UIManager {
 
   #initValidationButton() {
     const submitBtn = document.getElementById("submit-validation-btn");
-    if (!submitBtn) return;
+    // if (!submitBtn) return;
 
-    submitBtn.addEventListener("click", async () => {
+    submitBtn?.addEventListener("click", async (e) => {
+      e.preventDefault();
       // меняем на красивую плашку.
       const isConfirmed = confirm(
         "Вы уверены, что хотите отправить данные? После отправки отредактировать разметку будет невозможно"
@@ -35,24 +36,31 @@ export class UIManager {
           IndexedDatabase.getLatest("diagnoses"),
         ]);
 
-        const markups = savedMarkups?.data || this.markupMenuManager.markups;
-        const diagnoses =
-          savedDiagnoses?.data || this.diseaseTreeManager.selectedDiagnoses;
+        const markups = this.markupMenuManager.markups || savedMarkups?.data;
+        const diagnoses = this.diseaseTreeManager.selectedDiagnoses || savedDiagnoses?.data;
 
         if (markups.length < 6) {
-          // проверяем только длину разметки, так как диагнозы к разметке не обязательны
+          // проверяем только длину разметки, так как
+          // диагнозы к разметке не обязательны в текущей итерации проекта
           alert("Недостаточно данных для отправки!");
           return;
         }
 
         document.getElementById("markup-data").value = JSON.stringify(markups);
-        document.getElementById("diagnoses-data").value =
-          JSON.stringify(diagnoses);
+        document.getElementById("diagnoses-data").value = JSON.stringify(diagnoses);
+
+        UIManager.isAutosave = false;
+
+        await IndexedDatabase.deleteDatabase();
 
         document.getElementById("validation-form").submit();
+
       } catch (error) {
         console.error("Ошибка отправки:", error);
         alert("Ошибка при подготовке данных к отправке");
+        UIManager.isAutosave = true; 
+      } finally {
+        submitBtn.blur();
       }
     });
   }
@@ -63,8 +71,8 @@ export class UIManager {
     document.body.addEventListener(
       "click",
       (e) => {
-        const isMarkupPage = window.location.pathname.endsWith("/markup/");
-        if (!isMarkupPage) return; // Выходим, если находимся не на странице разметки
+        // const isMarkupPage = window.location.pathname.endsWith("/markup/");
+        // if (!isMarkupPage) return; // Выходим, если находимся не на странице разметки
 
         const link = e.target.closest("a");
         if (!link || !link.hasAttribute("data-save-before-nav")) return;
@@ -93,7 +101,7 @@ export class UIManager {
   }
 
   async #handlePageExit() {
-    if (UIManager.isLoggingOut) return;
+    if (!UIManager.isAutosave) return;
 
     if (
       document.visibilityState === "hidden" ||

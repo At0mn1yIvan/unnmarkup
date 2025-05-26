@@ -3,8 +3,10 @@ import { createChartOptions } from "./config/ChartOptions.js";
 import { EcgGraphMarkupManager } from "./ecg/EcgGraphMarkupManager.js";
 import { IndexedDatabase } from "./indexedDB/IndexedDatabase.js";
 import { DiseaseTreeManager } from "./UI/DiseaseTreeManager.js";
+import { UIManager } from "./UI/UIManager.js";
 
-async function initializeDiagnoses() {
+
+async function initDiagnosesStructure() {
   try {
     const response = await fetch(window.APP_CONFIG.diagnosesJsonUrl);
     if (!response.ok) {
@@ -13,7 +15,7 @@ async function initializeDiagnoses() {
       );
     }
     const diagnosesData = await response.json();
-    console.log("Diagnoses data loaded:", diagnosesData);
+    // console.log("Diagnoses data loaded:", diagnosesData);
     return diagnosesData;
   } catch (error) {
     console.error("Failed to load diagnoses data:", error);
@@ -29,9 +31,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     // const diseasesData = JSON.parse(
     //   document.getElementById("diseasesData").textContent
     // );
-    const diagnosesData = await initializeDiagnoses();
+    const diagnosesStructure = await initDiagnosesStructure();
 
-    const markupsNN = JSON.parse(
+    const markupsPredicted = JSON.parse(
       document.getElementById("markups").textContent
     );
 
@@ -41,7 +43,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const diagnosesIndexedDB = await IndexedDatabase.getLatest("diagnoses");
 
     if (!markupsIndexedDB) {
-      EcgGraphMarkupManager.loadMarkups(markupsNN);
+      EcgGraphMarkupManager.loadMarkups(markupsPredicted);
     } else {
       EcgGraphMarkupManager.loadMarkups(markupsIndexedDB.data);
     }
@@ -50,12 +52,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       DiseaseTreeManager.loadSelectedDiagnoses(diagnosesIndexedDB.data);
     }
 
+    let uiManager = new UIManager(diagnosesStructure);
+
     new EcgGraphSynchronizer(
       "left-column",
       "right-column",
       ecgData,
       ecgNames,
-      diagnosesData,
+      uiManager,
       options
     );
   } catch (error) {

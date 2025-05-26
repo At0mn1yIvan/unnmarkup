@@ -24,8 +24,8 @@ export class MarkupMenuManager {
 
   #initSaveButton() {
     const saveBtn = document.getElementById("save-markup-btn");
-    if (!saveBtn) return;
-    saveBtn.addEventListener("click", async (e) => {
+    //if (!saveBtn) return;
+    saveBtn?.addEventListener("click", async (e) => {
       const markups = this.markups;
       if (markups.length < 6) {
         e.preventDefault();
@@ -39,12 +39,19 @@ export class MarkupMenuManager {
         return a.x0 - b.x0;
       });
 
+      // saveBtn.disabled = true;
+      // saveBtn.textContent = "Сохранение...";
+
       try {
         await IndexedDatabase.add("markups", { data: markups });
         console.log("GetLatest:", await IndexedDatabase.getLatest("markups"));
       } catch (error) {
         console.error("Ошибка сохранения разметки:", error);
         alert("Ошибка сохранения разметки");
+      } finally {
+        saveBtn.blur();
+        // saveBtn.disabled = false;
+        // saveBtn.textContent = "Сохранить разметку локально";
       }
       //Добавляем toast вниз экрана, что данные успешно сохранены
       // При редиректе делаем автосейв данных

@@ -1,3 +1,44 @@
+/* ЗАМЕНА ОСНОВНОГО ЦВЕТА BOOTSTRAP*/
+.bg-primary {
+  background-color: #4a6bdf !important; /* !important может понадобиться для переопределения Bootstrap */
+}
+
+/* Ваш .btn-primary уже есть */
+.btn-primary {
+  background-color: #4a6bdf;
+  border-color: #4a6bdf;
+  /* ... остальное ... */
+}
+.btn-primary:hover {
+  background-color: #3a5acf; /* Более темный оттенок для hover */
+  border-color: #3a5acf;
+  /* ... остальное ... */
+}
+
+/* Пагинация */
+.pagination .page-item.active .page-link {
+  background-color: #4a6bdf;
+  border-color: #4a6bdf;
+  color: white; /* Убедитесь, что текст на активной кнопке читаем */
+}
+
+.pagination .page-item .page-link {
+  color: #4a6bdf; /* Цвет для неактивных ссылок */
+}
+
+.pagination .page-item .page-link:hover,
+.pagination .page-item .page-link:focus {
+  color: #3a5acf; /* Цвет при наведении/фокусе */
+  /* background-color: #e9ecef; /* Можно добавить фон при наведении */
+  /* border-color: #dee2e6; */
+}
+
+.pagination .page-item.disabled .page-link {
+  color: #6c757d; /* Стандартный цвет для отключенных элементов */
+}
+
+
+
 /* Основные стили дерева */
 .disease-tree {
   max-width: 100%;

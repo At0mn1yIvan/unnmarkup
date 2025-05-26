@@ -1,17 +1,17 @@
 {% extends "base.html" %} {% load static %}
 {% block script %}
 <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script>
-    window.APP_CONFIG = window.APP_CONFIG || {};
-    window.APP_CONFIG.diagnosesJsonUrl = "{% static 'markup/data/diagnoses.json' %}";
-  </script>
+<script>
+  window.APP_CONFIG = window.APP_CONFIG || {};
+  window.APP_CONFIG.diagnosesJsonUrl = "{% static 'markup/data/diagnoses.json' %}";
+</script>
 
 {{ data|json_script:"ecgData" }}
 {{ ecg_names|json_script:"ecgNames" }}
 {% comment %} {{ diseases_json|json_script:"diseasesData" }} {% endcomment %}
 {{ markups|json_script:"markups" }}
 
-<script type="module" src="{% static 'markup/js/app.js'%}"></script>
+<script type="module" src="{% static 'markup/js/perform_markup/app.js'%}"></script>
 {% endblock %} {% block content %}
 <div class="container-fluid mt-3">
 
@@ -90,24 +90,24 @@
 
               {% comment %} {% include "markup/markup_save_form.html" %} {% endcomment %}
               <button id="save-markup-btn" class="btn btn-primary w-100 mt-3"> 
-                Сохранить разметку
+                Сохранить разметку локально
               </button>
             </div>
             <div class="tab-pane fade" id="diagnosis-content" role="tabpanel">
               {% comment %} {% include "markup/diseases_save_form.html" %} {% endcomment %}
               <div id="diagnosis-tree-container"></div>
               <button id="save-diagnoses-btn" class="btn btn-primary w-100 mt-3">
-                Сохранить диагнозы
+                Сохранить диагнозы локально
               </button>
             </div>
           </div>
         </div>
         <div class="card-footer bg-transparent">
-          <form id="validation-form" method="post" action="{% url 'markup:perform_markup' %}">
+          <form id="validation-form" method="post" action="{% url 'markup:perform_markup' markup_id=markup_id %}">
             {% csrf_token %}
             <input type="hidden" id="markup-data" name="markup_data">
             <input type="hidden" id="diagnoses-data" name="diagnoses_data">
-            <button 
+            <button
               type="submit" 
               id="submit-validation-btn" 
               class="btn btn-success w-100"

@@ -1,7 +1,6 @@
 import os
 import uuid
 
-import numpy as np
 from django.db import models
 from django.utils import timezone
 from users.models import MarkerProfile, SupplierProfile, ValidatorProfile
@@ -37,34 +36,31 @@ class Signal(models.Model):
 
     supplier = models.ForeignKey(
         SupplierProfile,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
         related_name="uploaded_signals",
         verbose_name="Поставщик",
     )
     data_file = models.FileField(
-        "Файл с данными ЭКГ",
-        upload_to=ecg_file_path,
-        help_text="Файл в формате .npy"
+        "Файл с данными ЭКГ", upload_to=ecg_file_path, help_text="Файл в формате .npy"
     )
-    sample_rate = models.PositiveIntegerField(
-        "Частота дискретизации", default=500
-    )
+    sample_rate = models.PositiveIntegerField("Частота дискретизации", default=500)
     created_at = models.DateTimeField("Дата загрузки", auto_now_add=True)
     original_filename = models.CharField("Имя файла", max_length=255)
     markup_assignments_count = models.PositiveIntegerField(
         "Количество назначений на разметку",
         default=0,
-        help_text="Сколько раз этот сигнал был взят в работу или успешно размечен."
+        help_text="Сколько раз этот сигнал был взят в работу или успешно размечен.",
     )
 
     class Meta:
         verbose_name = "Сигнал ЭКГ"
         verbose_name_plural = "Сигналы ЭКГ"
-        ordering = ['created_at']
+        ordering = ["created_at"]
 
-    def can_be_assigned_new_markup(self):
-        """Проверяет, можно ли назначить этот сигнал для новой разметки."""
-        return self.markup_assignments_count < self.MAX_MARKUP_ASSIGNMENTS
+    # def can_be_assigned_new_markup(self):
+    #     """Проверяет, можно ли назначить этот сигнал для новой разметки."""
+    #     return self.markup_assignments_count < self.MAX_MARKUP_ASSIGNMENTS
 
     def save(self, *args, **kwargs):
         if not self.pk:  # Только при создании
@@ -88,7 +84,8 @@ class Markup(models.Model):
     )
     marker = models.ForeignKey(
         MarkerProfile,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
         related_name="created_markups",
         verbose_name="Маркировщик",
     )
@@ -107,6 +104,12 @@ class Markup(models.Model):
     status = models.CharField(
         "Статус", max_length=20, choices=STATUS_CHOICES, default="draft"
     )
+    is_markup_annotations_confirmed = models.BooleanField(
+        "Разметка ЭКГ подтверждена", default=False
+    )
+    is_diagnoses_confirmed = models.BooleanField(
+        "Диагнозы подтверждены", default=False
+    )
     created_at = models.DateTimeField("Дата создания", auto_now_add=True)
     updated_at = models.DateTimeField("Дата обновления", auto_now=True)
     expires_at = models.DateTimeField("Истекает в", null=True, blank=True)
@@ -117,12 +120,12 @@ class Markup(models.Model):
 
     def is_expired(self):
         """Проверяет, истек ли срок черновика."""
-        if self.status == 'draft' and self.expires_at:
+        if self.status == "draft" and self.expires_at:
             return timezone.now() > self.expires_at
         return False
 
     def time_left_for_draft(self):
         """Возвращает оставшееся время для черновика или None."""
-        if self.status == 'draft' and self.expires_at and not self.is_expired():
+        if self.status == "draft" and self.expires_at and not self.is_expired():
             return self.expires_at - timezone.now()
         return None
