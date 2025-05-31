@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "widget_tweaks",
     "markupheart.apps.MarkupHeartConfig",
     "users.apps.UsersConfig",
     "markup.apps.MarkupConfig",

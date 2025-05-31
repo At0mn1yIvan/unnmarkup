@@ -10,17 +10,6 @@
 
 {% block content %}
 <div class="container mt-4">
-  
-  {% comment %} <div class="row justify-content-center mb-4">
-    <div class="col-12">
-      <div class="card ecg-chart-container">
-        <div class="card-header bg-transparent border-bottom-0 pt-3 pb-2">
-          <h1 class="text-center h3 mb-0">{{ page_title|default:"Мои разметки" }}</h1>
-        </div>
-      </div>
-    </div>
-  </div> {% endcomment %}
-
   {% if messages %}
     <div class="row">
       <div class="col-12">
@@ -123,7 +112,7 @@
                         {% endif %}
                       </td>
                       <td class="text-center">
-                        {% if markup_item.status == "for_validation" %}
+                        {% if markup_item.status == "pending_validation" or  markup_item.status == "for_validation" %}
                           <span class="badge fs-6 bg-secondary">На проверке</span>
                         {% else %}
                           {% if markup_item.is_markup_annotations_confirmed %}
@@ -134,7 +123,7 @@
                         {% endif %}
                       </td>
                       <td class="text-center">
-                        {% if markup_item.status == "for_validation" %}
+                        {% if markup_item.status == "pending_validation" or  markup_item.status == "for_validation" %}
                           <span class="badge fs-6 bg-secondary">На проверке</span>
                         {% else %}
                           {% if markup_item.is_diagnoses_confirmed %}
@@ -154,7 +143,10 @@
       </div>
     </div>
 
-    {% if is_paginated %}
+    {% include "includes/pagination.html" %}
+
+
+    {% comment %} {% if is_paginated %}
       <div class="row mt-4">
         <div class="col-md-12">
           <nav aria-label="Page navigation">
@@ -202,7 +194,7 @@
           </nav>
         </div>
       </div>
-    {% endif %}
+    {% endif %} {% endcomment %}
 
   {% elif not active_draft and has_marker_profile %} 
     <div class="row mt-5">

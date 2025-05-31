@@ -23,6 +23,9 @@ def convert_ludb_to_npy_signals(data_dir_path: str) -> None:
     npy_signals_dir = os.path.join(os.getcwd(), "ludb", "npy_signals")
     Path(npy_signals_dir).mkdir(exist_ok=True)
 
+    if os.listdir(npy_signals_dir):
+        return
+
     all_files = os.listdir(data_dir_path)
     record_names = list(set([f.split(".")[0] for f in all_files if f.endswith(".dat")]))
 
@@ -41,12 +44,21 @@ def convert_ludb_to_npy_signals(data_dir_path: str) -> None:
 if __name__ == "__main__":
     dir_name = "ludb"
     dir_path = os.path.join(os.getcwd(), dir_name)
-    download_ludb(dir_path)
+    # download_ludb(dir_path)
 
-    convert_ludb_to_npy_signals(os.path.join(dir_path, "data"))
+    # convert_ludb_to_npy_signals(os.path.join(dir_path, "data"))
 
     # # pprint(fields)
 
-    # ann2 = wfdb.rdann('ludb/data/1', 'i')
-    # print(ann2.sample)  # Местоположения аннотаций
-    # print(ann2.symbol)  # Символы аннотаций, чтобы опеределить, где начало и конец P, QRS, T
+    ann2 = wfdb.rdann("ludb/data/1", "i")
+    ann3 = wfdb.rdann("ludb/data/1", "ii")
+    ann4 = wfdb.rdann("ludb/data/1", "v1")
+    ann5 = wfdb.rdann("ludb/data/1", "v2")
+    print(len(ann2.sample), len(ann2.symbol))
+    print(ann2.sample)  # Местоположения аннотаций
+    print(ann3.sample)
+    print(ann4.sample)
+    print(ann5.sample)
+    print(
+        ann2.symbol
+    )  # Символы аннотаций, чтобы опеределить, где начало и конец P, QRS, T

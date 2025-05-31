@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load static %}
+{% load widget_tweaks %} {# Если используете для стилизации форм #}
+
+{% block title %}{{ page_title|default:"Валидация сигнала" }}{% endblock %}
+
+{% comment %} {% block page_specific_styles %}
+<style>
+  .markup-validation-card { margin-bottom: 1.5rem; border-left-width: 4px; }
+  .markup-validation-card .card-header { font-size: 1.05rem; background-color: #f8f9fa; } /* Светлее фон заголовка карточки */
+  .markup-validation-card .card-body { padding-top: 1rem; padding-bottom: 1rem; }
+  .form-check-label { margin-bottom: 0; vertical-align: middle; font-size: 0.95rem;}
+  .form-check-input.ms-2 { margin-left: 0.5rem !important; vertical-align: middle;}
+  .final-decision-card .card-body { background-color: #e9ecef; } /* Чуть темнее для акцента */
+  .final-decision-card legend { font-size: 1.25rem; font-weight: 500; margin-bottom: 1rem; color: #212529; }
+  .final-decision-card .form-check { margin-bottom: 0.75rem; padding-left: 2.25rem; }
+  .final-decision-card .form-check-input { margin-top: 0.3rem; }
+  .btn-view-details { font-size: 0.9rem; }
+</style>
+{% endblock %} {% endcomment %}
+
+{% block script %}
+  {# Передача данных для JavaScript, если они нужны для какой-то общей логики на этой странице #}
+  {# Например, ID текущего сигнала для валидации #}
+  <script>
+    window.APP_CONFIG = window.APP_CONFIG || {};
+    window.APP_CONFIG.currentValidationSignalId = {{ signal.id|default_if_none:"null" }};
+    // Если нужны какие-то общие данные для всех разметок (например, имена каналов ЭКГ для отображения)
+  </script>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+  <div class="row mb-3">
+    <div class="col-md-12">
+      <div class="card ecg-chart-container">
+        <div class="card-header bg-primary text-white">
+          <h2 class="mb-0 fw-semibold"><i class="fas fa-microscope me-2"></i>{{ page_title }}</h2>
+        </div>
+        <div class="card-body">
+          <p class="fs-5 mb-1">Сигнал ID: <strong>{{ signal.id }}</strong></p>
+          <p class="fs-5 mb-0">Имя файла: <strong>{{ signal.original_filename }}</strong></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if messages %}
+    <div class="row">
+      <div class="col-md-12">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-3" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <form method="post" id="signalValidationForm">
+    {% csrf_token %}
+    {{ formset.management_form }} {# Обязательно для формсета #}
+
+    <div class="row mb-3">
+      <div class="col-12">
+        <h4 class="mb-1">Разметки для проверки ({{ markups_queryset.count }} шт.):</h4>
+        <p class="text-muted">
+          Для каждой разметки отметьте, принимаете ли вы аннотации ЭКГ и диагнозы. 
+          Для детального просмотра каждой разметки используйте кнопку "Просмотреть детали".
+        </p>
+      </div>
+    </div>
+
+    <div class="row row-cols-1 {% if markups_queryset.count > 1 %}row-cols-md-2{% endif %} {% if markups_queryset.count|divisibleby:3 %}row-cols-lg-3{% elif markups_queryset.count == 2 %}row-cols-lg-2{% else %}row-cols-lg-1{% endif %} g-4">
+      {% for form_in_itemset in formset %}
+        {% with markup_item=form_in_itemset.instance %}
+          <div class="col d-flex"> {# d-flex для выравнивания высоты карточек, если Bootstrap > 5.1 #}
+            <div class="card flex-fill shadow-sm markup-validation-card border-secondary"> {# flex-fill для одинаковой высоты #}
+              <div class="card-header">
+                Разметка от: <strong>{{ markup_item.marker.user.get_full_name|default_if_none:"N/A" }}</strong>
+                <br><small class="text-muted">ID разметки: {{ markup_item.id }}</small>
+              </div>
+              <div class="card-body d-flex flex-column"> {# flex-column для кнопки "Просмотреть" внизу #}
+                <div class="mb-2">
+                  {% render_field form_in_itemset.is_markup_annotations_confirmed class+="form-check-input" %} 
+                  <label class="form-check-label" for="{{ form_in_itemset.is_markup_annotations_confirmed.id_for_label }}">
+                    {{ form_in_itemset.is_markup_annotations_confirmed.label }}
+                  </label>
+                  {% if form_in_itemset.is_markup_annotations_confirmed.errors %}
+                    <div class="invalid-feedback d-block mt-1 small">
+                      {{ form_in_itemset.is_markup_annotations_confirmed.errors|join:", " }}
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="mb-0"> {# mb-0 если это последний элемент перед кнопкой #}
+                  {% render_field form_in_itemset.is_diagnoses_confirmed class+="form-check-input" %}
+                  <label class="form-check-label" for="{{ form_in_itemset.is_diagnoses_confirmed.id_for_label }}">
+                     {{ form_in_itemset.is_diagnoses_confirmed.label }}
+                  </label>
+                   {% if form_in_itemset.is_diagnoses_confirmed.errors %}
+                    <div class="invalid-feedback d-block mt-1 small">
+                      {{ form_in_itemset.is_diagnoses_confirmed.errors|join:", " }}
+                    </div>
+                  {% endif %}
+                </div>
+                
+
+                <div class="mt-auto pt-3"> {# mt-auto прижимает кнопку вниз #}
+                  {% comment %} <a href="{% url 'markup:view_markup_detail_readonly' markup_id=markup_item.id %}?next={{ request.get_full_path|urlencode }}"  {% endcomment %}
+                  <a href="#?next={{ request.get_full_path|urlencode }}" 
+                     class="btn btn-outline-info btn-sm w-100 btn-view-details"
+                     target="_blank"> {# Открывать в новой вкладке для удобства #}
+                    <i class="fas fa-eye me-1"></i> Просмотреть детали
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endwith %}
+      {% endfor %}
+    </div>
+
+    <hr class="my-4">
+
+    <div class="row justify-content-center mb-3">
+      <div class="col-md-10 col-lg-8">
+        <div class="card shadow-sm final-decision-card">
+          <div class="card-body px-4 py-3"> {# Увеличил паддинги #}
+            <legend class="card-title text-center">{{ final_decision_form.final_markup_choice.label_tag }}</legend>
+            {% for radio in final_decision_form.final_markup_choice %}
+              <div class="form-check">
+                {{ radio.tag }} 
+                <label class="form-check-label fw-normal ps-1" for="{{ radio.id_for_label }}">
+                  {{ radio.choice_label }}
+                </label>
+              </div>
+            {% endfor %}
+            {% if final_decision_form.final_markup_choice.errors %}
+              <div class="text-danger small mt-2 text-center">
+                <strong>{{ final_decision_form.final_markup_choice.errors|join:", " }}</strong>
+              </div>
+            {% endif %}
+            {% if final_decision_form.non_field_errors %}
+                <div class="text-danger small mt-2 text-center">
+                    <strong>{{ final_decision_form.non_field_errors|join:", " }}</strong>
+                </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mt-4 mb-5">
+      <div class="col-12 text-center">
+        <button type="submit" class="btn btn-success btn-lg py-2 fs-5">
+          <i class="fas fa-check-double me-2"></i> Завершить валидацию и сохранить решение
+        </button>
+        <a href="{% url 'markup:validation_queue_list' %}" class="btn btn-outline-secondary btn-lg ms-md-3 ms-sm-2 mt-2 mt-md-0 py-2 fs-5">
+          Отмена (вернуться к очереди)
+        </a>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

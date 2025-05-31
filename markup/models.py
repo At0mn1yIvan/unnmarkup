@@ -58,10 +58,6 @@ class Signal(models.Model):
         verbose_name_plural = "Сигналы ЭКГ"
         ordering = ["created_at"]
 
-    # def can_be_assigned_new_markup(self):
-    #     """Проверяет, можно ли назначить этот сигнал для новой разметки."""
-    #     return self.markup_assignments_count < self.MAX_MARKUP_ASSIGNMENTS
-
     def save(self, *args, **kwargs):
         if not self.pk:  # Только при создании
             self.original_filename = self.data_file.name
@@ -71,6 +67,7 @@ class Signal(models.Model):
 class Markup(models.Model):
     STATUS_CHOICES = (
         ("draft", "Черновик"),
+        ("pending_validation", "Ожидает проверки"),
         ("for_validation", "На проверке"),
         ("approved", "Подтверждено"),
         ("rejected", "Отклонено"),
@@ -107,9 +104,7 @@ class Markup(models.Model):
     is_markup_annotations_confirmed = models.BooleanField(
         "Разметка ЭКГ подтверждена", default=False
     )
-    is_diagnoses_confirmed = models.BooleanField(
-        "Диагнозы подтверждены", default=False
-    )
+    is_diagnoses_confirmed = models.BooleanField("Диагнозы подтверждены", default=False)
     created_at = models.DateTimeField("Дата создания", auto_now_add=True)
     updated_at = models.DateTimeField("Дата обновления", auto_now=True)
     expires_at = models.DateTimeField("Истекает в", null=True, blank=True)
