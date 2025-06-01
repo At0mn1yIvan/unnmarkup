@@ -5,6 +5,7 @@ from pprint import pprint
 import numpy as np
 import wfdb
 import wfdb.io
+
 from tqdm import tqdm
 
 
@@ -28,7 +29,9 @@ def convert_ludb_to_npy_signals(data_dir_path: str) -> None:
         return
 
     all_files = os.listdir(data_dir_path)
-    record_names = list(set([f.split(".")[0] for f in all_files if f.endswith(".dat")]))
+    record_names = list(
+        set([f.split(".")[0] for f in all_files if f.endswith(".dat")])
+    )
 
     for record_name in tqdm(record_names):
         try:
@@ -46,12 +49,17 @@ if __name__ == "__main__":
     dir_name = "ludb"
     dir_path = os.path.join(os.getcwd(), dir_name)
     # download_ludb(dir_path)
-
     # convert_ludb_to_npy_signals(os.path.join(dir_path, "data"))
 
-    # # pprint(fields)
+    dataset = ECGDataset(os.path.join(dir_path, "data"))
+    print(dataset[0]["mask"])
+    print(dataset[0]["signal"])
+    print(len(dataset[0]["mask"]))
+    print(len(dataset[0]["signal"]))
 
-    ann = wfdb.rdann("ludb/data/10", "i")
+    # pprint(fields)
 
-    print(ann.sample)
-    print(ann.symbol)
+    # ann = wfdb.rdann("ludb/data/10", "i")
+
+    # print(ann.sample)
+    # print(ann.symbol)
