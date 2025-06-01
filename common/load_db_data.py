@@ -20,6 +20,7 @@ def download_ludb(data_dir_path: str) -> None:
 
 
 def convert_ludb_to_npy_signals(data_dir_path: str) -> None:
+    """Метод для конвертации сигналов из LUDB в npy для тестирования сервиса."""
     npy_signals_dir = os.path.join(os.getcwd(), "ludb", "npy_signals")
     Path(npy_signals_dir).mkdir(exist_ok=True)
 
@@ -50,15 +51,7 @@ if __name__ == "__main__":
 
     # # pprint(fields)
 
-    ann2 = wfdb.rdann("ludb/data/1", "i")
-    ann3 = wfdb.rdann("ludb/data/1", "ii")
-    ann4 = wfdb.rdann("ludb/data/1", "v1")
-    ann5 = wfdb.rdann("ludb/data/1", "v2")
-    print(len(ann2.sample), len(ann2.symbol))
-    print(ann2.sample)  # Местоположения аннотаций
-    print(ann3.sample)
-    print(ann4.sample)
-    print(ann5.sample)
-    print(
-        ann2.symbol
-    )  # Символы аннотаций, чтобы опеределить, где начало и конец P, QRS, T
+    ann = wfdb.rdann("ludb/data/10", "i")
+
+    print(ann.sample)
+    print(ann.symbol)
