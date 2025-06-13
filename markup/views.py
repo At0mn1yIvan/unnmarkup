@@ -1,37 +1,29 @@
 import json
 from datetime import timedelta
 
-from django.forms import modelformset_factory
 import numpy as np
+from common import constants as common_constants
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
-from django.http import Http404, HttpResponseBadRequest, HttpResponseRedirect
+from django.db.models import Count, Exists, OuterRef, Q
+from django.forms import modelformset_factory
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views import View
-from django.views.decorators.http import require_POST
-from django.views.generic import CreateView, ListView
-from django.db.models import OuterRef, Count, Q, Exists
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views import View
+from django.views.generic import CreateView, ListView
+from unet import unet_ecg
 
-
-from . import constants
-from .forms import (
-    FinalSignalValidationDecisionForm,
-    SignalUploadForm,
-    SingleMarkupValidationItemForm,
-)
-from .mixins import (
-    UserIsMarkerOrSuperuserMixin,
-    UserIsSupplierOrSuperuserMixin,
-    UserIsValidatorOrSuperuserMixin,
-)
+from . import constants as local_constants
+from .forms import (FinalSignalValidationDecisionForm, SignalUploadForm,
+                    SingleMarkupValidationItemForm)
+from .mixins import (UserIsMarkerOrSuperuserMixin,
+                     UserIsSupplierOrSuperuserMixin,
+                     UserIsValidatorOrSuperuserMixin)
 from .models import Diagnosis, Markup, Signal
-
 
 # @login_required
 # # Ставим ограничение на суперпользователя и разметчика
@@ -60,7 +52,7 @@ from .models import Diagnosis, Markup, Signal
 
 class ValidationSignalListView(
     LoginRequiredMixin, UserIsValidatorOrSuperuserMixin, ListView
-):
+):  # pragma: no cover
     model = Markup
     template_name = "markup/validation_queue_list.html"
     context_object_name = "history_markups"
@@ -76,7 +68,8 @@ class ValidationSignalListView(
 
         return (
             Markup.objects.filter(
-                validator=validator_profile, status__in=["approved", "rejected"]
+                validator=validator_profile,
+                status__in=["approved", "rejected"],
             )
             .select_related("signal", "marker__user")
             .order_by("-updated_at")
@@ -100,7 +93,9 @@ class ValidationSignalListView(
                 )
 
         context["active_validation_signal"] = active_validation_signal_obj
-        context["can_take_new_validation_task"] = not active_validation_signal_obj
+        context["can_take_new_validation_task"] = (
+            not active_validation_signal_obj
+        )
         context["has_validator_profile"] = validator_profile is not None
 
         return context
@@ -108,14 +103,16 @@ class ValidationSignalListView(
 
 class StartSignalValidationView(
     LoginRequiredMixin, UserIsValidatorOrSuperuserMixin, View
-):
+):  # pragma: no cover
     @transaction.atomic
     def get(self, request, *args, **kwargs):
         validator_profile = self.request.user.validator_profile
 
         # 1. Проверить, нет ли у валидатора уже активной валидации
         active_signal_check = (
-            Markup.objects.filter(validator=validator_profile, status="for_validation")
+            Markup.objects.filter(
+                validator=validator_profile, status="for_validation"
+            )
             .select_related("signal")
             .first()
         )
@@ -126,7 +123,9 @@ class StartSignalValidationView(
                 request,
                 f"Вы уже работаете над валидацией сигнала: {signal_obj.original_filename}. Пожалуйста, завершите её.",
             )
-            return redirect("markup:perform_signal_validation", signal_id=signal_obj.id)
+            return redirect(
+                "markup:perform_signal_validation", signal_id=signal_obj.id
+            )
 
         # 2. Найти Signal для новой валидации
         # Аннотируем сигналы, чтобы посчитать количество разметок 'pending_validation' для каждого
@@ -146,7 +145,9 @@ class StartSignalValidationView(
                 num_pending_validation_markups=Count(
                     "markups", filter=Q(markups__status="pending_validation")
                 ),
-                is_actively_being_validated=Exists(is_being_validated_subquery),
+                is_actively_being_validated=Exists(
+                    is_being_validated_subquery
+                ),
                 has_approved_markup=Exists(has_approved_markup_subquery),
             )
             .filter(
@@ -177,14 +178,17 @@ class StartSignalValidationView(
             for markup_item in markups_to_assign_qs:
                 markup_item.status = "for_validation"
                 markup_item.validator = validator_profile
-                markup_item.save(update_fields=["status", "validator", "updated_at"])
+                markup_item.save(
+                    update_fields=["status", "validator", "updated_at"]
+                )
 
             messages.success(
                 request,
                 f"Вы взяли на валидацию сигнал: {signal_to_validate.original_filename}",
             )
             return redirect(
-                "markup:perform_signal_validation", signal_id=signal_to_validate.id
+                "markup:perform_signal_validation",
+                signal_id=signal_to_validate.id,
             )
         else:
             # Эта ситуация маловероятна, если логика фильтрации выше верна,
@@ -198,14 +202,16 @@ class StartSignalValidationView(
 
 class PerformSignalValidationView(
     LoginRequiredMixin, UserIsValidatorOrSuperuserMixin, View
-):
+):  # pragma: no cover
     template_name = "markup/perform_signal_validation.html"
 
     def get_signal_and_markups(self, signal_id, validator_profile):
         signal = get_object_or_404(Signal, pk=signal_id)
         markups_for_validation_qs = (
             Markup.objects.filter(
-                signal=signal, status="for_validation", validator=validator_profile
+                signal=signal,
+                status="for_validation",
+                validator=validator_profile,
             )
             .select_related("marker__user")
             .prefetch_related("diagnoses__parent")
@@ -240,7 +246,9 @@ class PerformSignalValidationView(
                 {
                     "id": markup_instance.id,
                     "marker_name": markup_instance.marker.user.get_full_name(),
-                    "markup_data_json": json.dumps(markup_instance.markup_data or []),
+                    "markup_data_json": json.dumps(
+                        markup_instance.markup_data or []
+                    ),
                     "diagnoses_paths_json": json.dumps(
                         diagnoses_paths or []
                     ),  # Теперь это JSON-строка списка путей
@@ -263,7 +271,10 @@ class PerformSignalValidationView(
         MarkupValidationFormSet = modelformset_factory(
             Markup,
             form=SingleMarkupValidationItemForm,
-            fields=("is_markup_annotations_confirmed", "is_diagnoses_confirmed"),
+            fields=(
+                "is_markup_annotations_confirmed",
+                "is_diagnoses_confirmed",
+            ),
             extra=0,
             can_delete=False,
         )
@@ -282,7 +293,8 @@ class PerformSignalValidationView(
             ("reject_all", "Отклонить все разметки для этого сигнала")
         )
         final_decision_form = FinalSignalValidationDecisionForm(
-            markup_choices_with_data=final_choices_data, prefix="final_decision"
+            markup_choices_with_data=final_choices_data,
+            prefix="final_decision",
         )
 
         # Получаем список словарей detailed_markups_data
@@ -311,8 +323,8 @@ class PerformSignalValidationView(
             return redirect("markup:validation_queue_list")
 
         try:
-            signal, markups_for_validation_initial_qs = self.get_signal_and_markups(
-                signal_id, validator_profile
+            signal, markups_for_validation_initial_qs = (
+                self.get_signal_and_markups(signal_id, validator_profile)
             )
         except Http404:
             return redirect("markup:validation_queue_list")
@@ -320,7 +332,10 @@ class PerformSignalValidationView(
         MarkupValidationFormSet = modelformset_factory(
             Markup,
             form=SingleMarkupValidationItemForm,
-            fields=("is_markup_annotations_confirmed", "is_diagnoses_confirmed"),
+            fields=(
+                "is_markup_annotations_confirmed",
+                "is_diagnoses_confirmed",
+            ),
             extra=0,
         )
         formset = MarkupValidationFormSet(
@@ -367,11 +382,15 @@ class PerformSignalValidationView(
             # Перезагружаем разметки, чтобы получить обновленные значения is_..._confirmed
             # Это важно для Шага 2, где мы принимаем решение о статусе 'approved'
             all_markups_for_signal = Markup.objects.filter(
-                signal=signal, validator=validator_profile, status="for_validation"
+                signal=signal,
+                validator=validator_profile,
+                status="for_validation",
             )
 
             # Шаг 2: Применяем финальное решение по всему сигналу
-            final_choice_value = final_decision_form.cleaned_data["final_markup_choice"]
+            final_choice_value = final_decision_form.cleaned_data[
+                "final_markup_choice"
+            ]
             approved_markup_successfully_set = False
 
             if final_choice_value == "reject_all":
@@ -385,7 +404,9 @@ class PerformSignalValidationView(
                     )  # Можно добавить is_..._confirmed, если сбрасываете
 
                 signal.markup_assignments_count = 0
-                signal.save(update_fields=["markup_assignments_count", "updated_at"])
+                signal.save(
+                    update_fields=["markup_assignments_count", "updated_at"]
+                )
                 messages.success(
                     request,
                     f"Все разметки для сигнала '{signal.original_filename}' отклонены. Сигнал будет доступен для повторной разметки.",
@@ -412,7 +433,9 @@ class PerformSignalValidationView(
                         else:
                             mu_instance.status = "rejected"
                             # Данные НЕ обнуляем. Флаги is_..._confirmed уже установлены.
-                        mu_instance.save(update_fields=["status", "updated_at"])
+                        mu_instance.save(
+                            update_fields=["status", "updated_at"]
+                        )
 
                     if approved_markup_successfully_set:
                         messages.success(
@@ -423,7 +446,10 @@ class PerformSignalValidationView(
                         # Если выбранная разметка не стала approved, и остальные rejected -> reject_all
                         signal.markup_assignments_count = 0
                         signal.save(
-                            update_fields=["markup_assignments_count", "updated_at"]
+                            update_fields=[
+                                "markup_assignments_count",
+                                "updated_at",
+                            ]
                         )
                         messages.warning(
                             request,
@@ -431,7 +457,9 @@ class PerformSignalValidationView(
                         )
 
                 except ValueError:
-                    messages.error(request, "Ошибка в выборе финальной разметки.")
+                    messages.error(
+                        request, "Ошибка в выборе финальной разметки."
+                    )
                     detailed_markups_data = self.get_detailed_markups_data(
                         all_markups_for_signal
                     )
@@ -450,7 +478,9 @@ class PerformSignalValidationView(
 
             return redirect("markup:validation_queue_list")
         else:
-            messages.error(request, "Пожалуйста, исправьте ошибки в формах валидации.")
+            messages.error(
+                request, "Пожалуйста, исправьте ошибки в формах валидации."
+            )
             detailed_markups_data = self.get_detailed_markups_data(
                 markups_for_validation_initial_qs
             )
@@ -470,7 +500,7 @@ class PerformSignalValidationView(
 
 class ViewMarkupDetailReadOnlyView(
     LoginRequiredMixin, UserIsValidatorOrSuperuserMixin, View
-):
+):  # pragma: no cover
     template_name = "markup/markup_readonly_detail.html"
 
     def get(self, request, markup_id, *args, **kwargs):
@@ -491,7 +521,8 @@ class ViewMarkupDetailReadOnlyView(
             ecg_signal_data = np.load(signal_obj.data_file.path).tolist()
         except FileNotFoundError:
             messages.error(
-                request, f"Файл сигнала ЭКГ ({signal_obj.data_file.name}) не найден."
+                request,
+                f"Файл сигнала ЭКГ ({signal_obj.data_file.name}) не найден.",
             )
             return redirect("markup:validation_queue_list")
         except Exception as e:
@@ -501,12 +532,15 @@ class ViewMarkupDetailReadOnlyView(
         diagnoses_paths = []
         for diagnosis in markup.diagnoses.all():
             if diagnosis.parent:
-                diagnoses_paths.append(f"{diagnosis.parent.name} | {diagnosis.name}")
+                diagnoses_paths.append(
+                    f"{diagnosis.parent.name} | {diagnosis.name}"
+                )
 
         # Определяем URL для возврата
         next_url = request.GET.get("next")
         default_back_url = reverse_lazy(
-            "markup:perform_signal_validation", kwargs={"signal_id": markup.signal_id}
+            "markup:perform_signal_validation",
+            kwargs={"signal_id": markup.signal_id},
         )
 
         if next_url and url_has_allowed_host_and_scheme(
@@ -517,7 +551,8 @@ class ViewMarkupDetailReadOnlyView(
             back_url = default_back_url
             if next_url:  # Если next был, но небезопасный
                 messages.warning(
-                    request, "Небезопасный URL для возврата был проигнорирован."
+                    request,
+                    "Небезопасный URL для возврата был проигнорирован.",
                 )
 
         context = {
@@ -525,19 +560,21 @@ class ViewMarkupDetailReadOnlyView(
             "markup_instance": markup,
             "signal_instance": signal_obj,
             "ecg_data_js": json.dumps(ecg_signal_data),
-            "ecg_names_js": json.dumps(constants.ECG_LEADS),
+            "ecg_names_js": json.dumps(common_constants.ECG_LEADS),
             "markup_annotations_js": json.dumps(markup.markup_data or []),
             "selected_diagnoses_paths_js": json.dumps(diagnoses_paths),
             "is_readonly_mode": True,
             "back_url": back_url,  # Передаем безопасный URL для возврата
             "constants_markup_types_js": json.dumps(
-                constants.MARKUP_TYPES
+                local_constants.MARKUP_TYPES
             ),  # Передаем типы разметки для JS
         }
         return render(request, self.template_name, context)
 
 
-class MarkupListView(LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, ListView):
+class MarkupListView(
+    LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, ListView
+):
     model = Markup
     template_name = "markup/markup_list.html"
     context_object_name = "completed_markups"
@@ -548,7 +585,12 @@ class MarkupListView(LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, ListView)
 
         return Markup.objects.filter(
             marker=marker_profile,
-            status__in=["approved", "rejected", "for_validation", "pending_validation"],
+            status__in=[
+                "approved",
+                "rejected",
+                "for_validation",
+                "pending_validation",
+            ],
         ).order_by("-updated_at")
 
     def get_context_data(self, **kwargs):
@@ -568,7 +610,7 @@ class MarkupListView(LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, ListView)
         )
 
         if current_draft:
-            if current_draft.is_expired():
+            if current_draft.is_expired:
                 signal_name = current_draft.signal.original_filename
 
                 current_draft.delete()
@@ -589,7 +631,9 @@ class MarkupListView(LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, ListView)
         return context
 
 
-class StartNewMarkupView(LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, View):
+class StartNewMarkupView(
+    LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, View
+):
     @transaction.atomic
     def get(self, request, *args, **kwargs):
         user = request.user
@@ -611,7 +655,9 @@ class StartNewMarkupView(LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, View)
                 request,
                 "У вас уже есть активная разметка сигнала. Пожалуйста, завершите её.",
             )
-            return redirect("perform_markup", markup_id=existing_active_draft.id)
+            return redirect(
+                "markup:perform_markup", markup_id=existing_active_draft.id
+            )
 
         signals_completed_by_user_ids = (
             Markup.objects.filter(marker=marker_profile)
@@ -645,13 +691,20 @@ class StartNewMarkupView(LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, View)
 
         messages.success(
             request,
-            f"Начата разметка для сигнала '{signal_to_markup.original_filename}'. "
-            f"У вас есть примерно 12 часов на её завершение.",
+            f"Начата разметка сигнала с id={signal_to_markup.id}. "
+            f"У вас есть 12 часов на её завершение.",
+        )
+        messages.warning(
+            request,
+            "Нейронная сеть выполнила предварительную разметку."
+            "Откорректируйте её результаты для более точной разметки",
         )
         return redirect("markup:perform_markup", markup_id=new_markup.pk)
 
 
-class PerformMarkupView(LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, View):
+class PerformMarkupView(
+    LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, View
+):
     template_name = "markup/markup.html"
 
     def get_markup_or_handle_error(self, request, markup_id):
@@ -677,7 +730,7 @@ class PerformMarkupView(LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, View):
             return None, redirect("markup:markup_list")
 
         # Проверка, не истек ли срок действия черновика.
-        if markup.is_expired():
+        if markup.is_expired:
             signal_name = markup.signal.original_filename
 
             with transaction.atomic():
@@ -692,7 +745,9 @@ class PerformMarkupView(LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, View):
 
     def get(self, request, markup_id, *args, **kwargs):
         """Обработка GET-запроса для отображения страницы разметки."""
-        markup, error_redirect = self.get_markup_or_handle_error(request, markup_id)
+        markup, error_redirect = self.get_markup_or_handle_error(
+            request, markup_id
+        )
         if error_redirect:
             return error_redirect
         if not markup:
@@ -701,7 +756,7 @@ class PerformMarkupView(LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, View):
         signal_obj = markup.signal
 
         try:
-            ecg_signal_data = np.load(signal_obj.data_file.path).tolist()
+            ecg_signal_data = np.load(signal_obj.data_file.path)
         except FileNotFoundError:
             messages.error(
                 request,
@@ -715,18 +770,28 @@ class PerformMarkupView(LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, View):
             )
             return redirect("markup:markup_list")
 
+        try:
+            if not markup.markup_data:
+                # Сохраняем предразметку нейронной сети для предотвращения вызова метода предсказания каждый GET запрос
+                markups = unet_ecg.predict(ecg_signal_data)
+                markup.markup_data = markups
+                markup.save()
+        except Exception as e:
+            messages.error(
+                request,
+                f"Ошибка при предварительной разметке данных нейронной сетью: {e}"
+            )
+
         context = {
             "page_title": f"Разметка сигнала: {signal_obj.original_filename}",  # Заголовок страницы
             "markup_id": markup.id,  # ID текущего черновика (для JS и URL формы)
             "signal_id": signal_obj.id,  # ID сигнала (может быть полезно для JS)
             # Данные для {{ data|json_script:"ecgData" }} в шаблоне
-            "data": ecg_signal_data,
+            "data": ecg_signal_data.tolist(),
             # Данные для {{ ecg_names|json_script:"ecgNames" }}
-            "ecg_names": constants.ECG_LEADS,
-            "markups": [],  # Или markup.markup_data, если хотите передать сохраненное состояние из БД (но IndexedDB может его переопределить)
-            # Типы разметки для радиокнопок выбора инструмента (P, QRS, T, Noise)
-            "markup_types": constants.MARKUP_TYPES,
-            # Время истечения черновика в ISO формате для использования в JS (например, для таймера)
+            "ecg_names": common_constants.ECG_LEADS,
+            "markups": markup.markup_data or [],
+            "markup_types": local_constants.MARKUP_TYPES,
             "markup_expires_at_iso": (
                 markup.expires_at.isoformat() if markup.expires_at else None
             ),
@@ -738,7 +803,9 @@ class PerformMarkupView(LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, View):
     @transaction.atomic
     def post(self, request, markup_id, *args, **kwargs):
         """Обработка POST-запроса для отправки разметки на валидацию."""
-        markup, error_redirect = self.get_markup_or_handle_error(request, markup_id)
+        markup, error_redirect = self.get_markup_or_handle_error(
+            request, markup_id
+        )
         if error_redirect:
             return error_redirect
         if not markup:
@@ -771,10 +838,14 @@ class PerformMarkupView(LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, View):
         try:
             # Данные диагнозов должны прийти как JSON-строка, представляющая массив строк
             # формата "Родитель | Потомок".
-            selected_diagnoses_paths_list = json.loads(selected_diagnoses_paths_str)
+            selected_diagnoses_paths_list = json.loads(
+                selected_diagnoses_paths_str
+            )
 
             if not isinstance(selected_diagnoses_paths_list, list):
-                raise ValueError("Данные диагнозов должны быть JSON-массивом строк.")
+                raise ValueError(
+                    "Данные диагнозов должны быть JSON-массивом строк."
+                )
         except (json.JSONDecodeError, ValueError) as e:
             messages.error(
                 request,
@@ -786,7 +857,8 @@ class PerformMarkupView(LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, View):
             # Проверка формата каждой строки диагноза
             if not isinstance(path_str, str) or " | " not in path_str:
                 messages.error(
-                    request, f"Некорректный формат для пути диагноза: '{path_str}'."
+                    request,
+                    f"Некорректный формат для пути диагноза: '{path_str}'.",
                 )
                 has_diagnosis_errors = True
                 continue
@@ -836,16 +908,13 @@ class PerformMarkupView(LoginRequiredMixin, UserIsMarkerOrSuperuserMixin, View):
         return redirect("markup:markup_list")
 
 
-class SignalUploadView(LoginRequiredMixin, UserIsSupplierOrSuperuserMixin, CreateView):
+class SignalUploadView(
+    LoginRequiredMixin, UserIsSupplierOrSuperuserMixin, CreateView
+):
     model = Signal
     form_class = SignalUploadForm
     template_name = "markup/upload_files.html"
     success_url = reverse_lazy("markup:signal_upload")
-
-    # def dispatch(self, request, *args, **kwargs):
-    #     if not (request.user.is_superuser or request.user.role == "user_supplier"):
-    #         raise PermissionDenied
-    #     return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -867,13 +936,12 @@ class SignalUploadView(LoginRequiredMixin, UserIsSupplierOrSuperuserMixin, Creat
             else:
                 messages.success(self.request, "Все файлы успешно загружены")
 
-            # Перенаправляем с использованием success_url
-            # return HttpResponseRedirect(self.success_url)
-
             return redirect("markup:signal_upload")
 
         except Exception as e:
-            messages.error(self.request, f"Ошибка при загрузке файлов: {str(e)}")
+            messages.error(
+                self.request, f"Ошибка при загрузке файлов: {str(e)}"
+            )
             return self.form_invalid(form)
 
 

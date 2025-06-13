@@ -10,6 +10,24 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
+from common.constants import ECG_LEADS
+
+
+# ECG_LEADS = [
+#     "I",
+#     "II",
+#     "III",
+#     "AVR",
+#     "AVL",
+#     "AVF",
+#     "V1",
+#     "V2",
+#     "V3",
+#     "V4",
+#     "V5",
+#     "V6",
+# ]
+
 
 class UNetModel(nn.Module):
     class _TwoConvLayers(nn.Module):
@@ -170,22 +188,7 @@ class ECGDataset(Dataset):
         self.signal_len_points = signal_len_points
         self.fragment_len_points = fragment_len_points
 
-        self.lead_annotator_extensions = [
-            "i",
-            "ii",
-            "iii",
-            "avr",
-            "avl",
-            "avf",
-            "v1",
-            "v2",
-            "v3",
-            "v4",
-            "v5",
-            "v6",
-        ]
-
-        # self.lead_annotator_extensions = list(map(lambda x: x.lower(), ECG_LEADS))
+        self.lead_annotator_extensions = list(map(lambda x: x.lower(), ECG_LEADS))
 
         self.class_map = {"p": 1, "N": 2, "t": 3}
 
@@ -239,9 +242,10 @@ class ECGDataset(Dataset):
                 signals_all_leads, meta = wfdb.rdsamp(
                     record_path
                 )  # signals_all_leads: (5000, 12)
-                signals_all_leads = (
-                    signals_all_leads.T
-                )  # signals_all_leads: (12, 5000)
+                if signals_all_leads.shape != (12, 5000):
+                    signals_all_leads = (
+                        signals_all_leads.T
+                    )  # signals_all_leads: (12, 5000)
 
                 if signals_all_leads.shape[1] != self.signal_len_points:
                     print(
@@ -331,7 +335,7 @@ def train_model(ludb_data_dir="ludb/data", num_epochs=100):
         print(
             f"Ошибка: Директория {LUDB_DATA_DIR} не найдена. Укажите правильный путь."
         )
-        exit()
+        return
 
     all_dat_files = [
         f for f in os.listdir(LUDB_DATA_DIR) if f.endswith(".dat")
@@ -346,7 +350,7 @@ def train_model(ludb_data_dir="ludb/data", num_epochs=100):
         print(
             f"В директории {LUDB_DATA_DIR} не найдены файлы .dat. Проверьте путь."
         )
-        exit()
+        return
     print(f"Найдено ЭКГ записей: {len(available_record_names)}")
 
     train_rec_names, val_rec_names = train_test_split(
@@ -369,7 +373,7 @@ def train_model(ludb_data_dir="ludb/data", num_epochs=100):
         print(
             "Один из датасетов пуст. Проверьте процесс загрузки данных, пути и наличие аннотаций."
         )
-        exit()
+        return
 
     train_loader = DataLoader(
         train_dataset,
@@ -551,5 +555,119 @@ def train_model(ludb_data_dir="ludb/data", num_epochs=100):
     print("Обучение завершено.")
 
 
+def extract_segments_from_mask_array(mask_array, class_id_map_inverse):
+    segments = {wave_name: [] for wave_name in class_id_map_inverse.values()}
+    for class_id, wave_name in class_id_map_inverse.items():
+        in_segment = False
+        start_idx = -1
+        for i, label in enumerate(mask_array):
+            if label == class_id and not in_segment:
+                in_segment = True
+                start_idx = i
+            elif label != class_id and in_segment:
+                in_segment = False
+                segments[wave_name].append((start_idx, i - 1))
+                start_idx = -1
+        if in_segment:
+            segments[wave_name].append((start_idx, len(mask_array) - 1))
+    return segments
+
+
+def predict(signal_all_leads: np.ndarray, lead_to_predict="I"):
+    MODEL_PATH = 'best_ecg_unet_model_f1.pth'
+
+    NUM_CLASSES = 4
+    INPUT_CHANNELS = 1
+    FRAGMENT_LENGTH = 2000
+    STRIDE = 1500
+    BATCH_SIZE_INFERENCE = 16
+
+    CLASS_ID_MAP = {1: "P", 2: "QRS", 3: "T"}
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    loaded_model = UNetModel(in_channels=INPUT_CHANNELS, num_classes=NUM_CLASSES)
+    try:
+        loaded_model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
+        print(f"Веса модели успешно загружены")
+    except Exception as e:
+        print(f"Ошибка при загрузке весов модели: {e}")
+        return
+    loaded_model.to(device)
+    loaded_model.eval()
+
+    try:
+        lead_to_predict_idx = ECG_LEADS.index(lead_to_predict.upper())
+        predict_signal = signal_all_leads[lead_to_predict_idx, :].astype(np.float32)
+        print(f"\nЗагружен сигнал. Отведение {lead_to_predict}")
+    except Exception as e:
+        print(f"Ошибка при загрузке сигнала: {e}")
+        return
+
+    predict_signal_length = len(predict_signal)
+    sum_logits_np = np.zeros((NUM_CLASSES, predict_signal_length), dtype=np.float32)
+    overlap_counts_np = np.zeros(predict_signal_length, dtype=np.float32)
+
+    all_fragments_np_list = []
+    all_start_idx_list = []
+
+    for start_idx in range(0, predict_signal_length - FRAGMENT_LENGTH + 1, STRIDE):
+        all_fragments_np_list.append(predict_signal[start_idx: start_idx + FRAGMENT_LENGTH])
+        all_start_idx_list.append(start_idx)
+
+    last_processed_end = 0
+    if all_start_idx_list:
+        last_processed_end = all_start_idx_list[-1] + FRAGMENT_LENGTH
+
+    if last_processed_end < predict_signal_length:
+        start_idx_last_frag = max(0, predict_signal_length - FRAGMENT_LENGTH)
+        if not all_start_idx_list or start_idx_last_frag != all_start_idx_list[-1]:
+            all_fragments_np_list.append(predict_signal[start_idx_last_frag : start_idx_last_frag + FRAGMENT_LENGTH])
+            all_start_idx_list.append(start_idx_last_frag)
+
+    print(f"Сигнал будет обработан {len(all_fragments_np_list)} окнами по {FRAGMENT_LENGTH} точек с шагом {STRIDE}.")
+    print(f"Инференс будет выполняться батчами по {BATCH_SIZE_INFERENCE} фрагментов.")
+
+    with torch.no_grad():
+        total_fragments_length = len(all_fragments_np_list)
+        for batch_start_idx in range(0, total_fragments_length, BATCH_SIZE_INFERENCE):
+            batch_end_idx = min(batch_start_idx + BATCH_SIZE_INFERENCE, total_fragments_length)
+
+            current_fragments_for_batch_np_list = all_fragments_np_list[batch_start_idx:batch_end_idx]
+            current_start_indices_for_batch = all_start_idx_list[batch_start_idx:batch_end_idx]
+
+            fragments_batch_np = np.stack(current_fragments_for_batch_np_list, axis=0)
+
+            batch_tensor = torch.from_numpy(fragments_batch_np).unsqueeze(1).float().to(device)
+
+            # Предсказания
+            batch_logits_tensor = loaded_model(batch_tensor)
+            batch_logits_np = batch_logits_tensor.cpu().numpy()
+
+            for i in range(batch_logits_np.shape[0]):
+                single_fragment_logits_np = batch_logits_np[i]
+                original_start_idx = current_start_indices_for_batch[i]
+
+                sum_logits_np[:, original_start_idx: original_start_idx + FRAGMENT_LENGTH] += single_fragment_logits_np
+                overlap_counts_np[original_start_idx: original_start_idx + FRAGMENT_LENGTH] += 1
+
+    averaged_logits_np = sum_logits_np / np.maximum(overlap_counts_np, 1)
+    predicted_classes_np = np.argmax(averaged_logits_np, axis=0)
+
+    segmented_intervals = extract_segments_from_mask_array(predicted_classes_np, CLASS_ID_MAP)
+
+    all_predictions = []
+    for wave_type, intervals in segmented_intervals.items():
+        for start, end in intervals:
+            all_predictions.append({"type": wave_type, "x0": start, "x1": end})
+
+    all_predictions.sort(key=lambda x: (x["x0"], x["x1"]))
+
+    return all_predictions
+
+
 if __name__ == "__main__":
-    pass
+    # Тестирование разметки
+    data = np.load("ludb/npy_signals/191.npy").T
+
+    predict(data)

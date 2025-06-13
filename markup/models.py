@@ -1,6 +1,7 @@
 import os
 import uuid
 
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 from users.models import MarkerProfile, SupplierProfile, ValidatorProfile
@@ -44,7 +45,11 @@ class Signal(models.Model):
     data_file = models.FileField(
         "Файл с данными ЭКГ", upload_to=ecg_file_path, help_text="Файл в формате .npy"
     )
-    sample_rate = models.PositiveIntegerField("Частота дискретизации", default=500)
+    sample_rate = models.PositiveIntegerField(
+        "Частота дискретизации",
+        validators=[MinValueValidator(100), MaxValueValidator(1000)],
+        default=500
+    )
     created_at = models.DateTimeField("Дата загрузки", auto_now_add=True)
     original_filename = models.CharField("Имя файла", max_length=255)
     markup_assignments_count = models.PositiveIntegerField(
@@ -57,6 +62,9 @@ class Signal(models.Model):
         verbose_name = "Сигнал ЭКГ"
         verbose_name_plural = "Сигналы ЭКГ"
         ordering = ["created_at"]
+
+    def __str__(self):
+        return self.original_filename
 
     def save(self, *args, **kwargs):
         if not self.pk:  # Только при создании
@@ -113,6 +121,7 @@ class Markup(models.Model):
         verbose_name = "Разметка"
         verbose_name_plural = "Разметки"
 
+    @property
     def is_expired(self):
         """Проверяет, истек ли срок черновика."""
         if self.status == "draft" and self.expires_at:
@@ -121,6 +130,6 @@ class Markup(models.Model):
 
     def time_left_for_draft(self):
         """Возвращает оставшееся время для черновика или None."""
-        if self.status == "draft" and self.expires_at and not self.is_expired():
+        if self.status == "draft" and self.expires_at and not self.is_expired:
             return self.expires_at - timezone.now()
         return None

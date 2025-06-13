@@ -3,6 +3,9 @@ from http.cookies import SimpleCookie
 
 import requests
 from bs4 import BeautifulSoup
+from tqdm import tqdm
+
+BASE_URL = "https://mkb-10.com"
 
 
 def set_session_cookie(url, session) -> None:
@@ -25,27 +28,26 @@ def web_scraper(site_url: str, session=None) -> dict[str, dict]:
     tree = {}
     general_divs = doc.find_all(["div"], class_="h2")
 
-    for general_div in general_divs:
-        inner_div_child = list(general_div.find(["div"], attrs=None).children)[
-            0
-        ]
+    for general_div in tqdm(general_divs):
+        inner_div_child = list(general_div.find(["div"], attrs=None).children)[0]
 
         if inner_div_child.name == "a":
-            next_url = "https://mkb-10.com" + inner_div_child["href"]
+            next_url = BASE_URL + inner_div_child["href"]
             tree[inner_div_child.string] = web_scraper(next_url, session)
         elif inner_div_child.name == "b":
             tree[inner_div_child.string] = None
 
     return tree
 
-
+# TODO: переписать как модуль для вызова в management
 if __name__ == "__main__":
-    url = "https://mkb-10.com/index.php?pid=8001"
+    url = BASE_URL + "/index.php?pid=8001"
 
     session = requests.Session()
     set_session_cookie(url, session)
 
-    with open("diseases.json", "w", encoding="utf-8") as file:
+    output_path = "markup/static/markup/data/"
+    with open(output_path + "diagnoses.json", "w", encoding="utf-8") as file:
         file.write(
             json.dumps(
                 web_scraper(url, session=session), ensure_ascii=False, indent=2

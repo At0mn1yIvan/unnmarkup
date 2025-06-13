@@ -157,6 +157,19 @@ class SignalUploadForm(forms.ModelForm):
                         "Эти данные уже были загружены ранее"
                     )
 
+                data = self.check_and_transpose_array(data)
+
+                buffer = BytesIO()
+                np.save(buffer, data)
+
+                # Перемещаем указатель в начало буфера
+                buffer.seek(0)
+
+                # Очищаем файл и записываем новые данные
+                file.seek(0)
+                file.truncate()
+                file.write(buffer.getvalue())
+
                 valid_files.append(file)
             except Exception:
                 continue
@@ -167,6 +180,15 @@ class SignalUploadForm(forms.ModelForm):
             )
 
         return valid_files
+
+    @staticmethod
+    def check_and_transpose_array(arr):
+        if arr.shape == (12, 5000):
+            return arr
+        elif arr.shape == (5000, 12):
+            return arr.T
+        else:
+            raise ValidationError(f"Ожидался массив формы (12, 5000) или (5000, 12), но получен {arr.shape}")
 
     def is_duplicate_data(self, data):
         existing_signals = (

@@ -147,16 +147,18 @@ export class EcgGraphMarkupManager {
             .attr("height", height)
             .attr("fill", (d) => EcgGraphMarkupManager.colorMap[d.type])
             .attr("stroke", "black")
-            .attr("stroke-width", 3)
+            .attr("stroke-width", 1.5)
             .attr("opacity", 0.4)
             .on("contextmenu", (event, d) => this.#removeMarkup(event, d))
             .on("mousedown", (event, d) => this.#handleResizeStart(event, d)),
-        (update) =>
-          update,
+        (update) => update,
         (exit) => exit.remove()
       )
-    .attr("x", (d) => this.#graphGroup.xScale(d.x0))
-    .attr("width", (d) => this.#graphGroup.xScale(d.x1) - this.#graphGroup.xScale(d.x0));
+      .attr("x", (d) => this.#graphGroup.xScale(d.x0))
+      .attr(
+        "width",
+        (d) => this.#graphGroup.xScale(d.x1) - this.#graphGroup.xScale(d.x0)
+      );
   }
 
   #removeMarkup(event, markup) {

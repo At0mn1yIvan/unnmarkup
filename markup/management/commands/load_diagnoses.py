@@ -2,14 +2,17 @@ import json
 from typing import Optional
 
 from django.core.management.base import BaseCommand
+from django.db import IntegrityError
 from markup.models import Diagnosis
 from tqdm import tqdm
+
+# from icd10parser.parser_with_cookie import web_scraper
 
 
 class Command(BaseCommand):
     """
     Заполнение таблицы Diagnosis диагнозами из МКБ-10.
-    Пример вызова команды: python manage.py load_diagnoses media/diagnoses.json
+    Пример вызова команды: python manage.py load_diagnoses markup/static/markup/data/diagnoses.json
     """
 
     def add_arguments(self, parser) -> None:
@@ -26,6 +29,13 @@ class Command(BaseCommand):
             return
         except json.JSONDecodeError:
             self.stderr.write("Ошибка: файл не является валидным JSON")
+            return
+
+        try:
+            if Diagnosis.objects.exists():
+                raise IntegrityError("Таблица диагнозов не пуста")
+        except IntegrityError as e:
+            self.stderr.write(f"Ошибка: {e}")
             return
 
         self.fill_data(diseases_data)

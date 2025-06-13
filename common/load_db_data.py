@@ -1,12 +1,11 @@
 import os
 from pathlib import Path
-from pprint import pprint
 
 import numpy as np
 import wfdb
 import wfdb.io
-
 from tqdm import tqdm
+from unnmarkup.unet.unet_ecg import ECGDataset
 
 
 def download_ludb(data_dir_path: str) -> None:
@@ -38,9 +37,11 @@ def convert_ludb_to_npy_signals(data_dir_path: str) -> None:
             record_path = os.path.join(data_dir_path, record_name)
 
             signal, _ = wfdb.rdsamp(record_path)
+            if signal.shape != (12, 5000):
+                signal = signal.T
 
             output_path = os.path.join(npy_signals_dir, f"{record_name}.npy")
-            np.save(output_path, signal.T)
+            np.save(output_path, signal)
         except Exception as e:
             print(f"\nОшибка в записи {record_name}: {str(e)}")
 
