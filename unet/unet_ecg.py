@@ -523,7 +523,7 @@ def extract_segments_from_mask_array(mask_array, class_id_map_inverse):
 
 
 def predict(signal_all_leads: np.ndarray, lead_to_predict="I"):
-    MODEL_PATH = "ecg_unet_model.pth"
+    MODEL_PATH = "unet/ecg_unet_model.pth"
 
     NUM_CLASSES = 4
     INPUT_CHANNELS = 1
