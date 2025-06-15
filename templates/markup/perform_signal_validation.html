@@ -1,23 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
-{% load widget_tweaks %} {# Если используете для стилизации форм #}
-
+{% load widget_tweaks %}
 {% block title %}{{ page_title|default:"Валидация сигнала" }}{% endblock %}
 
-{% comment %} {% block page_specific_styles %}
-<style>
-  .markup-validation-card { margin-bottom: 1.5rem; border-left-width: 4px; }
-  .markup-validation-card .card-header { font-size: 1.05rem; background-color: #f8f9fa; } /* Светлее фон заголовка карточки */
-  .markup-validation-card .card-body { padding-top: 1rem; padding-bottom: 1rem; }
-  .form-check-label { margin-bottom: 0; vertical-align: middle; font-size: 0.95rem;}
-  .form-check-input.ms-2 { margin-left: 0.5rem !important; vertical-align: middle;}
-  .final-decision-card .card-body { background-color: #e9ecef; } /* Чуть темнее для акцента */
-  .final-decision-card legend { font-size: 1.25rem; font-weight: 500; margin-bottom: 1rem; color: #212529; }
-  .final-decision-card .form-check { margin-bottom: 0.75rem; padding-left: 2.25rem; }
-  .final-decision-card .form-check-input { margin-top: 0.3rem; }
-  .btn-view-details { font-size: 0.9rem; }
-</style>
-{% endblock %} {% endcomment %}
 
 {% block script %}
   {# Передача данных для JavaScript, если они нужны для какой-то общей логики на этой странице #}
@@ -75,13 +60,15 @@
     <div class="row row-cols-1 {% if markups_queryset.count > 1 %}row-cols-md-2{% endif %} {% if markups_queryset.count|divisibleby:3 %}row-cols-lg-3{% elif markups_queryset.count == 2 %}row-cols-lg-2{% else %}row-cols-lg-1{% endif %} g-4">
       {% for form_in_itemset in formset %}
         {% with markup_item=form_in_itemset.instance %}
-          <div class="col d-flex"> {# d-flex для выравнивания высоты карточек, если Bootstrap > 5.1 #}
-            <div class="card flex-fill shadow-sm markup-validation-card border-secondary"> {# flex-fill для одинаковой высоты #}
+          <div class="col d-flex">
+            <div class="card flex-fill shadow-sm markup-validation-card border-secondary">
               <div class="card-header">
                 Разметка от: <strong>{{ markup_item.marker.user.get_full_name|default_if_none:"N/A" }}</strong>
                 <br><small class="text-muted">ID разметки: {{ markup_item.id }}</small>
               </div>
-              <div class="card-body d-flex flex-column"> {# flex-column для кнопки "Просмотреть" внизу #}
+              <div class="card-body d-flex flex-column">
+                {{ form_in_itemset.id }} 
+                
                 <div class="mb-2">
                   {% render_field form_in_itemset.is_markup_annotations_confirmed class+="form-check-input" %} 
                   <label class="form-check-label" for="{{ form_in_itemset.is_markup_annotations_confirmed.id_for_label }}">
@@ -93,7 +80,7 @@
                     </div>
                   {% endif %}
                 </div>
-                <div class="mb-0"> {# mb-0 если это последний элемент перед кнопкой #}
+                <div class="mb-0">
                   {% render_field form_in_itemset.is_diagnoses_confirmed class+="form-check-input" %}
                   <label class="form-check-label" for="{{ form_in_itemset.is_diagnoses_confirmed.id_for_label }}">
                      {{ form_in_itemset.is_diagnoses_confirmed.label }}

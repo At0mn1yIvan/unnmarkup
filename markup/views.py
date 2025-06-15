@@ -319,8 +319,6 @@ class PerformSignalValidationView(
     @transaction.atomic
     def post(self, request, signal_id, *args, **kwargs):
         validator_profile = self.request.user.validator_profile
-        if not validator_profile:
-            return redirect("markup:validation_queue_list")
 
         try:
             signal, markups_for_validation_initial_qs = (
@@ -344,12 +342,19 @@ class PerformSignalValidationView(
             prefix="markup_items",
         )
 
-        # Choices для валидации формы, фактические метки не так важны здесь
-        final_choices_validation = [
-            (m.id, "") for m in markups_for_validation_initial_qs
-        ] + [("reject_all", "")]
+        final_choices_data_for_form = [
+            (
+                markup.id,
+                f"Разметка от: {markup.marker.user.get_full_name()} (ID: {markup.id})",
+            )
+            for markup in markups_for_validation_initial_qs
+        ]
+        final_choices_data_for_form.append(
+            ("reject_all", "Отклонить все разметки для этого сигнала")
+        )
+
         final_decision_form = FinalSignalValidationDecisionForm(
-            markup_choices_with_data=final_choices_validation,
+            markup_choices_with_data=final_choices_data_for_form,
             data=request.POST,
             prefix="final_decision",
         )
@@ -379,7 +384,7 @@ class PerformSignalValidationView(
                         ]
                     )
 
-            # Перезагружаем разметки, чтобы получить обновленные значения is_..._confirmed
+            # Перезагружаем разметки, чтобы получить обновленные значения is_confirmed
             # Это важно для Шага 2, где мы принимаем решение о статусе 'approved'
             all_markups_for_signal = Markup.objects.filter(
                 signal=signal,
@@ -481,6 +486,22 @@ class PerformSignalValidationView(
             messages.error(
                 request, "Пожалуйста, исправьте ошибки в формах валидации."
             )
+
+            print("------- PerformSignalValidationView POST Data -------")
+            print(request.POST)
+            print("------- Formset Errors -------")
+            if formset.errors:
+                for i, form_errors_dict in enumerate(formset.errors):
+                    if form_errors_dict: # Если есть ошибки для этой формы
+                        form_instance_pk = formset.forms[i].instance.pk if formset.forms[i].instance else "N/A"
+                        print(f"Form {i} (Markup PK: {form_instance_pk}): {form_errors_dict}")
+            if formset.non_form_errors():
+                print(f"Formset Non-form errors: {formset.non_form_errors()}")
+            print("------- Final Decision Form Errors -------")
+            if final_decision_form.errors:
+                print(f"Final Decision Form errors: {final_decision_form.errors.as_json()}")
+
+
             detailed_markups_data = self.get_detailed_markups_data(
                 markups_for_validation_initial_qs
             )
@@ -669,7 +690,7 @@ class StartNewMarkupView(
         potential_signals = (
             Signal.objects.exclude(id__in=signals_completed_by_user_ids)
             .filter(markup_assignments_count__lt=Signal.MAX_MARKUP_ASSIGNMENTS)
-            .order_by("markup_assignments_count", "created_at")
+            .order_by("-markup_assignments_count", "created_at")
         )
 
         signal_to_markup = potential_signals.first()
@@ -692,7 +713,7 @@ class StartNewMarkupView(
         messages.success(
             request,
             f"Начата разметка сигнала с id={signal_to_markup.id}. "
-            f"У вас есть 12 часов на её завершение.",
+            "У вас есть 12 часов на её завершение.",
         )
         messages.warning(
             request,
@@ -737,7 +758,8 @@ class PerformMarkupView(
                 markup.delete()
             messages.error(
                 request,
-                f"Срок действия вашего черновика для сигнала '{signal_name}' истек. Он был удален. Пожалуйста, начните новую разметку.",
+                f"Срок действия вашего черновика для сигнала '{signal_name}' истек."
+                "Он был удален. Пожалуйста, начните новую разметку."
             )
             return None, redirect("markup:markup_list")
 
@@ -786,9 +808,7 @@ class PerformMarkupView(
             "page_title": f"Разметка сигнала: {signal_obj.original_filename}",  # Заголовок страницы
             "markup_id": markup.id,  # ID текущего черновика (для JS и URL формы)
             "signal_id": signal_obj.id,  # ID сигнала (может быть полезно для JS)
-            # Данные для {{ data|json_script:"ecgData" }} в шаблоне
             "data": ecg_signal_data.tolist(),
-            # Данные для {{ ecg_names|json_script:"ecgNames" }}
             "ecg_names": common_constants.ECG_LEADS,
             "markups": markup.markup_data or [],
             "markup_types": local_constants.MARKUP_TYPES,
@@ -882,14 +902,16 @@ class PerformMarkupView(
             except Diagnosis.DoesNotExist:
                 messages.error(
                     request,
-                    f"Диагноз не найден в базе данных: '{child_name}' (родитель: '{parent_name}'). Возможно, структура диагнозов на клиенте устарела или содержит ошибку.",
+                    f"Диагноз не найден в базе данных: '{child_name}' (родитель: '{parent_name}')."
+                    "Возможно, структура диагнозов на клиенте устарела или содержит ошибку."
                 )
                 has_diagnosis_errors = True
 
         if has_diagnosis_errors:
             messages.warning(
                 request,
-                "Разметка не была отправлена на валидацию из-за ошибок в диагнозах. Пожалуйста, проверьте выбранные диагнозы и попробуйте снова.",
+                "Разметка не была отправлена на валидацию из-за ошибок в диагнозах."
+                "Пожалуйста, проверьте выбранные диагнозы и попробуйте снова."
             )
             return redirect("markup:perform_markup", markup_id=markup_id)
 
