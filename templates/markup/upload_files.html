@@ -10,7 +10,6 @@
         </div>
         
         <div class="card-body pt-0">
-          <!-- Сообщения системы -->
           {% if messages %}
           <div class="mt-3">
             {% for message in messages %}
@@ -22,11 +21,9 @@
           </div>
           {% endif %}
 
-          <!-- Форма -->
           <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
             {% csrf_token %}
             
-            <!-- Ошибки формы -->
             {% if form.errors %}
             <div class="alert alert-danger mb-4">
               {% for field, errors in form.errors.items %}
@@ -37,7 +34,6 @@
             </div>
             {% endif %}
 
-            <!-- Поле загрузки файлов -->
             <div class="mb-4">
               <label class="form-label fw-semibold">{{ form.files.label }}</label>
               <div class="file-input-container">
@@ -46,13 +42,11 @@
               <small class="form-text text-muted mt-2 d-block">{{ form.files.help_text }}</small>
             </div>
 
-            <!-- Поле частоты дискретизации -->
             <div class="mb-4">
               <label class="form-label fw-semibold">{{ form.sample_rate.label }}</label>
               {{ form.sample_rate }}
             </div>
 
-            <!-- Кнопка отправки -->
             <button type="submit" class="btn btn-primary w-100 py-2 fs-5">
               <i class="bi bi-cloud-upload me-2"></i>Загрузить данные
             </button>

@@ -20,20 +20,20 @@ urlpatterns = [
         "validation/queue/",
         views.ValidationSignalListView.as_view(),
         name="validation_queue_list",
-    ),  # pragma: no cover
+    ),
     path(
         "validation/start_next/",
         views.StartSignalValidationView.as_view(),
         name="start_validation",
-    ),  # pragma: no cover
+    ),
     path(
         "validation/perform/<int:signal_id>/",
         views.PerformSignalValidationView.as_view(),
         name="perform_signal_validation",
-    ),  # pragma: no cover
+    ),
     path(
         "validation/view_markup/<int:markup_id>/",
         views.ViewMarkupDetailReadOnlyView.as_view(),
         name="view_markup_detail_readonly",
-    ),  # pragma: no cover
+    ),
 ]

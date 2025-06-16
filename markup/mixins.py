@@ -43,7 +43,7 @@ class UserIsSupplierOrSuperuserMixin(AccessMixin):
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return self.handle_no_permission()  # Перенаправляет на LOGIN_URL
+            return self.handle_no_permission()
 
         can_access = False
         if request.user.is_superuser:
@@ -74,7 +74,7 @@ class UserIsValidatorOrSuperuserMixin(AccessMixin):
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return self.handle_no_permission()  # Перенаправляет на LOGIN_URL
+            return self.handle_no_permission()
 
         can_access = False
         if request.user.is_superuser:

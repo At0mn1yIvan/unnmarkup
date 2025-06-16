@@ -287,10 +287,10 @@ def calculate_segmentation_metrics(y_true_flat, y_pred_flat, class_labels, class
     """
     Вычисляет метрики сегментации (Pixel Accuracy, Precision, Recall, F1) для указанных классов.
     Args:
-        y_true_flat (np.array): 1D массив истинных меток классов (например, [0,0,1,1,2,0,...]).
-        y_pred_flat (np.array): 1D массив предсказанных меток классов (например, [0,1,1,1,2,0,...]).
+        y_true_flat (np.array): 1D массив истинных меток классов.
+        y_pred_flat (np.array): 1D массив предсказанных меток классов.
         class_labels (list): Список ID классов, для которых нужно посчитать детальные метрики
-                             (например, [1, 2, 3] для P, QRS, T, исключая фон).
+                             (например, [1, 2, 3] для P, QRS, T).
         class_names_map (dict): Словарь для отображения ID класса в его имя
                                 (например, {0: "Background", 1: "P", 2: "QRS", 3: "T"}).
     Returns:
